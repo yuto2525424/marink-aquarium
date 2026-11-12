@@ -1,0 +1,18 @@
+# Cloudflare Workers の設定（AIモードを使う場合のみ）
+name = "marink-story"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# GitHub Pages のURL（https://ユーザー名.github.io）を入れる。複数はカンマ区切り
+ALLOWED_ORIGINS = "https://YOUR-NAME.github.io"
+CLAUDE_MODEL = "claude-opus-5-5"
+CLAUDE_EFFORT = "low"
+PER_IP_10MIN = "5"
+DAILY_PER_IP = "10"
+DAILY_GLOBAL_CAP = "300"
+
+# 1日の回数制限と結果キャッシュに使うKV（作成後に id を書き換えて、コメントを外す）
+# [[kv_namespaces]]
+# binding = "RATE_KV"
+# id = "ここにKVのIDを入れる"

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MARINK AQUARIUM ― 運命の館長</title>
+  <meta name="description" content="自分だけの水族館を制作しよう！ あなたの10の決断が、水族館の未来を変える。究極の三択×水族館経営のマルチエンディングゲーム。">
+  <meta name="theme-color" content="#cfeaf2">
+  <meta property="og:title" content="MARINK AQUARIUM ― 運命の館長">
+  <meta property="og:description" content="あなたの10の決断が、水族館の未来を変える。">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 背景：水中の光と泳ぐ魚（操作の邪魔をしない装飾） -->
+  <div class="ocean" aria-hidden="true">
+    <div class="ocean__rays"></div>
+    <div class="ocean__caustics"></div>
+    <div class="ocean__fish" id="bgFish"></div>
+    <div class="ocean__bubbles" id="bgBubbles"></div>
+  </div>
+
+  <header class="topbar" id="topbar" hidden>
+    <button class="icon-btn" id="backBtn" type="button" aria-label="1つ前の問題に戻る">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="progress">
+      <div class="progress__label" id="progressLabel">第1問 / 全10問</div>
+      <div class="progress__bar"><div class="progress__fill" id="progressFill"></div></div>
+    </div>
+    <button class="icon-btn" id="soundBtn" type="button" aria-label="効果音のオン・オフ" aria-pressed="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="snd-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="snd-off" d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </header>
+
+  <main class="app" id="app" aria-live="polite"></main>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden></section>
+
+  <div class="curtain" id="curtain" hidden>
+    <div class="curtain__inner">
+      <div class="curtain__bubbles" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="curtain__text" id="curtainText"></p>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-label="結果画像"></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <noscript><p style="padding:24px">このゲームを遊ぶには JavaScript を有効にしてください。</p></noscript>
+
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/visual.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

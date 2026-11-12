@@ -1,0 +1,466 @@
+/*
+ * MARINK AQUARIUM ― 画面の表示と操作
+ * 計算は engine.js、物語は story.js / ai.js、絵は visual.js、画像は share.js が担当します。
+ */
+(function () {
+  "use strict";
+  var M = window.MARINK;
+  var E = M.engine, D = M.DATA, S = M.sound;
+  var $ = function (id) { return document.getElementById(id); };
+  var app = $("app");
+  var history = [];
+  var busy = false;
+  var current = null; // { result, story }
+  var STORE = "marink-history-" + D.version;
+
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  }
+  function save() { try { sessionStorage.setItem(STORE, history.join("")); } catch (e) {} }
+  function load() { try { return E.parseHistory(sessionStorage.getItem(STORE) || "") || []; } catch (e) { return []; } }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function show(html, cls) {
+    app.innerHTML = '<div class="screen ' + (cls || "") + '">' + html + "</div>";
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    return app.firstChild;
+  }
+
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.hidden = true; }, 2400);
+  }
+
+  function deltaChips(delta) {
+    var items = [];
+    E.STAT_KEYS.forEach(function (k) {
+      if (!delta[k]) return;
+      var up = delta[k] > 0;
+      items.push('<li class="delta ' + (up ? "up" : "down") + '">' + D.statLabels[k] + (up ? " ↑" : " ↓") + Math.abs(delta[k]) + "</li>");
+    });
+    if (delta.debt) items.push('<li class="delta debt">借入金 ' + (delta.debt > 0 ? "+" : "") + delta.debt + "</li>");
+    return items.length ? '<ul class="deltas">' + items.join("") + "</ul>" : "";
+  }
+
+  /* ───── 背景の魚と泡 ───── */
+  function decorate() {
+    var fishBox = $("bgFish"), bub = $("bgBubbles");
+    var colors = ["#f3b49f", "#7cc0cf", "#f3d27a", "#ffffff", "#9ccf9f"];
+    for (var i = 0; i < 6; i++) {
+      var s = document.createElement("div");
+      s.className = "bgfish" + (i % 2 ? " rev" : "");
+      var size = 22 + (i * 7) % 26;
+      s.style.top = 12 + i * 14 + "%";
+      s.style.animationDuration = 22 + i * 6 + "s";
+      s.style.animationDelay = -i * 5 + "s";
+      s.innerHTML = '<svg width="' + size * 1.6 + '" height="' + size + '" viewBox="-12 -8 30 16"><path d="M-10 0 C-5 -7 7 -7 10 0 C7 7 -5 7 -10 0 Z" fill="' + colors[i % 5] + '"/><path d="M9 0 L16 -6 L15 0 L16 6 Z" fill="' + colors[i % 5] + '"/><circle cx="-5" cy="-1.5" r="1.3" fill="#2f4a6b"/></svg>';
+      fishBox.appendChild(s);
+    }
+    for (var j = 0; j < 10; j++) {
+      var b = document.createElement("span");
+      var sz = 6 + (j * 5) % 12;
+      b.style.left = (j * 11 + 4) % 100 + "%";
+      b.style.width = b.style.height = sz + "px";
+      b.style.animationDuration = 9 + (j % 5) * 3 + "s";
+      b.style.animationDelay = -j * 1.9 + "s";
+      bub.appendChild(b);
+    }
+  }
+
+  /* ───── トップバー ───── */
+  function topbar(visible, round) {
+    var tb = $("topbar");
+    tb.hidden = !visible;
+    if (!visible) return;
+    $("progressLabel").textContent = "第" + round + "問 / 全10問";
+    $("progressFill").style.width = ((round - 1) / 10) * 100 + "%";
+    $("backBtn").disabled = history.length === 0;
+  }
+
+  /* ───── タイトル画面 ───── */
+  function renderTitle() {
+    topbar(false);
+    var saved = load();
+    var demo = { location: "tourist", main: "big", bigFish: "full", tanks: "big", staffStyle: "veteran", price: "mid", scale: 2, newWing: false, lab: false, conservation: false, alliance: false, mega: false, reservation: false, renewed: false, care: false, closed: false, reorg: false, crowd: 7, mood: "bright" };
+    var resume = saved.length > 0 && saved.length < 10
+      ? '<button class="btn btn--ghost btn--small" id="resumeBtn" type="button" style="margin-top:10px">続きから遊ぶ（第' + (saved.length + 1) + "問）</button>"
+      : "";
+    show(
+      '<section class="title-screen">' +
+        '<div class="brand-mini">MARINK</div>' +
+        '<h1 class="title-logo"><span class="title-logo__en">MARINK AQUARIUM</span><span class="title-logo__ja">運命の館長</span></h1>' +
+        '<p class="catch">「自分だけの水族館を制作しよう！」</p>' +
+        '<p class="subcatch">あなたの10の決断が、水族館の未来を変える。</p>' +
+        '<div class="hero">' + M.visual.render(demo, { signText: "MARINK AQUARIUM", seed: 3, id: "hero" }) + "</div>" +
+        '<div class="intro">' +
+          "<p>あなたは今日、新しい水族館の<span class=\"em\">館長</span>に任命されました。</p>" +
+          "<p>これから10回、重大な決断をしていただきます。</p>" +
+          "<p>あなたの選択によって、水族館の未来は大きく変わります。</p>" +
+          "<p>大成功するのか、それとも……？</p>" +
+          "<p>さあ、あなたの水族館の物語を始めましょう。</p>" +
+        "</div>" +
+        '<ul class="chips"><li class="chip">約3〜5分</li><li class="chip">全10問・3択</li><li class="chip">無料・ログイン不要</li></ul>' +
+        '<button class="btn btn--primary" id="startBtn" type="button">水族館をつくる！</button>' +
+        resume +
+        '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
+      "</section>"
+    );
+    $("startBtn").addEventListener("click", function () {
+      S.play("bubble");
+      history = [];
+      save();
+      goRound();
+    });
+    if ($("resumeBtn")) $("resumeBtn").addEventListener("click", function () {
+      S.play("bubble");
+      history = saved;
+      goRound();
+    });
+  }
+
+  /* ───── ラウンド進行 ───── */
+  function goRound() {
+    busy = false;
+    if (history.length >= 10) return finish();
+    var sim = E.simulate(history);
+    var next = sim.next;
+    topbar(true, next.round);
+    if (next.events.length) renderEvents(next);
+    else renderQuestion(next.question);
+  }
+
+  function renderEvents(next) {
+    var crisis = next.events.some(function (e) { return e.mood === "crisis"; });
+    var bad = next.events.some(function (e) { return e.mood === "bad"; });
+    var cards = next.events.map(function (e) {
+      var tag = { good: "うれしいニュース", bad: "ちょっと困った", crisis: "緊急事態", info: "お知らせ" }[e.mood];
+      return '<article class="card event-card mood-' + e.mood + '"><span class="event-card__tag">' + tag + "</span><h3>" + esc(e.title) + "</h3><p>" + esc(e.text) + "</p>" + deltaChips(e.delta) + "</article>";
+    }).join("");
+    show(
+      '<div class="q-head"><span class="q-round">第' + next.round + "問の前に…</span></div>" + cards +
+      '<button class="btn btn--sea" id="toQuestion" type="button" style="margin-top:18px">第' + next.round + "問へ進む</button>",
+      crisis ? "mood-crisis-screen" : ""
+    );
+    S.play(crisis ? "crisis" : bad ? "bad" : "good");
+    $("toQuestion").addEventListener("click", function () { S.play("tap"); renderQuestion(next.question); });
+  }
+
+  function renderQuestion(q) {
+    var opts = q.options.map(function (o) {
+      return '<button class="option" type="button" data-id="' + o.id + '">' +
+        '<span class="option__badge" aria-hidden="true">' + o.id + "</span>" +
+        "<span><span class=\"option__label\">" + esc(o.label) + "</span>" +
+        '<span class="option__pc"><span class="p">＋ ' + esc(o.pros) + '</span><br><span class="c">－ ' + esc(o.cons) + "</span></span></span>" +
+        "</button>";
+    }).join("");
+    show(
+      '<div class="q-head"><span class="q-round">QUESTION ' + q.round + "</span>" +
+      '<h2 class="q-title">' + esc(q.title) + "</h2>" +
+      '<p class="q-desc">' + esc(q.description) + "</p></div>" +
+      '<p class="q-ask">あなたならどうする？</p>' +
+      '<div class="options" id="options">' + opts + "</div>"
+    );
+    $("options").addEventListener("click", function (ev) {
+      var btn = ev.target.closest(".option");
+      if (!btn || busy) return;
+      pick(btn, ev);
+    });
+  }
+
+  function ripple(x, y) {
+    var r = document.createElement("div");
+    r.className = "ripple";
+    r.style.left = x - 10 + "px";
+    r.style.top = y - 10 + "px";
+    document.body.appendChild(r);
+    setTimeout(function () { r.remove(); }, 750);
+  }
+
+  function pick(btn, ev) {
+    busy = true;
+    var id = btn.getAttribute("data-id");
+    btn.classList.add("is-picked");
+    $("options").classList.add("is-locked");
+    var rect = btn.getBoundingClientRect();
+    ripple(ev.clientX || rect.left + rect.width / 2, ev.clientY || rect.top + rect.height / 2);
+    S.play("bubble");
+    setTimeout(function () {
+      history.push(id);
+      save();
+      var sim = E.simulate(history);
+      var step = sim.steps[sim.steps.length - 1];
+      $("progressFill").style.width = (history.length / 10) * 100 + "%";
+      openSheet(step);
+    }, 380);
+  }
+
+  function openSheet(step) {
+    var last = step.round === 10;
+    var notes = step.notes.map(function (n) { return '<p class="note">' + esc(n) + "</p>"; }).join("");
+    var tip = step.tip ? '<p class="tip"><b>海のまめ知識</b>' + esc(step.tip) + "</p>" : "";
+    var sheet = $("sheet");
+    sheet.innerHTML =
+      '<div class="sheet__choice">第' + step.round + "問　あなたの決断 " + step.choice + "</div>" +
+      '<h2 id="sheetTitle">' + esc(step.label) + "</h2>" +
+      '<p class="sheet__text">' + esc(step.feedback) + "</p>" + notes + deltaChips(step.delta) + tip +
+      '<button class="btn ' + (last ? "btn--primary" : "btn--sea") + '" id="sheetNext" type="button">' + (last ? "10年後の水族館を見る" : "次の問題へ") + "</button>";
+    $("sheetBackdrop").hidden = false;
+    sheet.hidden = false;
+    sheet.scrollTop = 0;
+    var ups = E.STAT_KEYS.reduce(function (a, k) { return a + (step.delta[k] || 0); }, 0);
+    setTimeout(function () { S.play(ups >= 0 ? "good" : "soft"); }, 120);
+    $("sheetNext").focus({ preventScroll: true });
+    $("sheetNext").addEventListener("click", function () {
+      S.play("tap");
+      closeSheet();
+      goRound();
+    });
+  }
+
+  function closeSheet() {
+    $("sheet").hidden = true;
+    $("sheetBackdrop").hidden = true;
+  }
+
+  /* ───── 結果発表 ───── */
+  function finish() {
+    topbar(false);
+    var result = E.simulate(history);
+    var template = M.story.buildStory(result);
+    var curtain = $("curtain"), text = $("curtainText");
+    curtain.hidden = false;
+    var lines = ["あなたの水族館の10年間を振り返っています……", "10年間の経営結果をまとめています……"];
+    var aiP = M.ai.requestStory(result, template);
+    var seq = Promise.resolve();
+    lines.forEach(function (l) {
+      seq = seq.then(function () {
+        text.textContent = l;
+        text.style.animation = "none"; void text.offsetWidth; text.style.animation = "";
+        return wait(1300);
+      });
+    });
+    seq
+      .then(function () {
+        var slow = setTimeout(function () { text.textContent = "AIがあなただけの物語を書いています……"; }, 400);
+        return aiP.then(function (r) { clearTimeout(slow); return r; });
+      })
+      .then(function (ai) {
+        text.textContent = "あなたの水族館が完成しました！";
+        S.play(["closure", "reorg", "staffcrisis", "overexpanded"].indexOf(result.endingId) >= 0 ? "soft" : "fanfare");
+        return wait(1100).then(function () { return ai; });
+      })
+      .then(function (ai) {
+        curtain.hidden = true;
+        var story = ai.story || template;
+        story.failReason = ai.story ? null : ai.reason;
+        renderResult(result, story, false);
+      });
+  }
+
+  function radar(fs) {
+    var keys = E.STAT_KEYS, cx = 150, cy = 140, R = 100;
+    var pt = function (i, v) {
+      var a = -Math.PI / 2 + (i / keys.length) * Math.PI * 2;
+      return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v];
+    };
+    var grid = "";
+    [0.25, 0.5, 0.75, 1].forEach(function (s) {
+      grid += '<polygon points="' + keys.map(function (k, i) { return pt(i, s).join(","); }).join(" ") + '" fill="none" stroke="#dfe7ea" stroke-width="1"/>';
+    });
+    var axes = keys.map(function (k, i) { var p = pt(i, 1); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="#e6ecef"/>'; }).join("");
+    var vals = keys.map(function (k) { return k === "fund" ? Math.max(0, Math.min(100, (fs.fund + 30) / 1.6)) : fs[k]; });
+    var poly = vals.map(function (v, i) { return pt(i, Math.max(0.04, v / 100)).join(","); }).join(" ");
+    var labels = keys.map(function (k, i) {
+      var p = pt(i, 1.22);
+      return '<text x="' + p[0] + '" y="' + (p[1] + 4) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#2f4a6b">' + D.statLabels[k] + "</text>";
+    }).join("");
+    return '<svg class="radar" viewBox="0 0 300 285" role="img" aria-label="経営結果のレーダーチャート">' + grid + axes +
+      '<polygon points="' + poly + '" fill="rgba(124,192,207,.45)" stroke="#4fa6b8" stroke-width="2.5" stroke-linejoin="round"/>' + labels + "</svg>";
+  }
+
+  function bars(fs) {
+    return '<ul class="bars">' + E.STAT_KEYS.map(function (k) {
+      var v = fs[k];
+      var pct = k === "fund" ? Math.max(3, Math.min(100, (v + 50) / 2)) : Math.max(3, v);
+      return '<li class="bar"><span>' + D.statLabels[k] + '</span><span class="bar__track"><span class="bar__fill' + (k === "fund" && v < 0 ? " neg" : "") + '" data-w="' + pct + '"></span></span><span class="bar__val">' + v + "</span></li>";
+    }).join("") + "</ul>";
+  }
+
+  function renderResult(result, story, shared) {
+    current = { result: result, story: story };
+    topbar(false);
+    var art = M.visual.render(result.aquarium, { signText: story.aquariumName, seed: result.resultNumber + 1, id: "res", label: story.aquariumName + "のイラスト" });
+    var src = story.source === "ai"
+      ? '<span class="source-badge ai">✦ 物語：AI生成（Claude）</span>'
+      : '<span class="source-badge">物語：テンプレート生成' + (story.failReason && story.failReason !== "disabled" ? "（AIに接続できなかったため）" : "") + "</span>";
+    var chapters = story.chapters.map(function (c) { return '<div class="chapter"><h3>' + esc(c.heading) + "</h3><p>" + esc(c.text) + "</p></div>"; }).join("");
+    var decisions = story.keyDecisions.map(function (d) {
+      return '<div class="decision"><div class="decision__no">第' + d.round + "問</div><div>" +
+        '<div class="decision__label">' + esc(d.label) + "</div>" +
+        (d.effect ? '<div class="decision__effect">' + esc(d.effect) + "</div>" : "") +
+        '<div class="decision__reason">' + esc(d.reason) + "</div></div></div>";
+    }).join("");
+    var ledger = result.settlement.ledger.map(function (l) {
+      var v = l.value ? (l.value > 0 ? "+" : "") + l.value : D.statLabels[l.stat] + " " + l.statValue;
+      return "<li><span>" + esc(l.label) + '</span><span class="' + (l.value > 0 ? "pos" : "neg") + '">' + esc(v) + "</span></li>";
+    }).join("");
+    var record = result.steps.map(function (s) {
+      return "<li><b>第" + s.round + "問　" + esc(s.title) + "</b>" + s.choice + "：" + esc(s.label) + "<br><span>" + esc(M.story.fmtDelta(s.delta) || "変化なし") + "</span></li>";
+    }).join("");
+    var tone = "tone-" + result.ending.mood;
+
+    show(
+      '<section class="result-top">' +
+        (shared ? '<p class="small-note" style="margin:0 0 10px">友達がつくった水族館の結果です</p>' : "") +
+        '<div class="result-art">' + art + "</div>" +
+        '<p class="result-name">' + (shared ? "友達の水族館" : "あなたの水族館") + "<b>" + esc(story.aquariumName) + "</b></p>" +
+        '<span class="ending-badge ' + tone + '">' + esc(story.endingCategory) + "</span>" +
+        '<h1 class="ending-title">『' + esc(story.endingTitle) + "』</h1>" +
+        '<p class="ending-summary">' + esc(story.shortSummary) + "</p>" + src +
+      "</section>" +
+      '<section class="card" style="margin-top:18px"><h2 class="section-title">水族館の特徴</h2><ul class="feature-list">' +
+        story.features.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul></section>" +
+      '<section class="card"><h2 class="section-title">10年間の経営結果</h2><div class="stats-wrap">' + radar(result.finalStats) + bars(result.finalStats) + "</div>" +
+        '<ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + result.finalStats.fund + "</span></li></ul>" +
+        '<p class="small-note">※ 数値はゲーム内だけの指標です。現実の水族館の評価ではありません。</p></section>' +
+      '<section class="card"><h2 class="section-title">10年間の物語</h2>' + chapters + "</section>" +
+      '<section class="card"><h2 class="section-title">運命を変えた3つの選択</h2>' + decisions + "</section>" +
+      '<section class="card"><h2 class="section-title">10年後の水族館</h2><p style="margin:0">' + esc(story.finalSceneDescription) + "</p></section>" +
+      '<section class="card"><details class="record"><summary>すべての選択の記録</summary><ol>' + record + "</ol></details></section>" +
+      (shared ? "" :
+        '<section class="card"><h2 class="section-title">結果をシェアする</h2>' +
+        '<div class="share-grid"><a class="btn btn--ghost" id="xBtn" target="_blank" rel="noopener">Xでポスト</a><a class="btn btn--ghost" id="lineBtn" target="_blank" rel="noopener">LINEで送る</a><button class="btn btn--ghost" id="copyBtn" type="button">URLコピー</button></div>' +
+        '<p class="small-note">Instagramには「結果画像を保存」で保存した画像を投稿してください。</p>' +
+        '<button class="btn btn--primary" id="retryBtn" type="button" style="margin-top:14px">もう一度つくる</button></section>') +
+      '<p class="result-id">結果ID：' + esc(result.resultId) + "</p>" +
+      '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
+      '<div class="result-actions">' +
+        (shared
+          ? '<button class="btn btn--primary" id="retryBtn" type="button">自分も水族館をつくる！</button>'
+          : '<div class="btn-row"><button class="btn btn--sea btn--small" id="saveBtn" type="button">結果画像を保存</button><button class="btn btn--primary btn--small" id="shareBtn" type="button">友達に共有</button></div>') +
+      "</div>"
+    );
+
+    requestAnimationFrame(function () {
+      setTimeout(function () {
+        app.querySelectorAll(".bar__fill").forEach(function (b) { b.style.width = b.getAttribute("data-w") + "%"; });
+      }, 300);
+    });
+    observeChapters();
+    if (!shared && ["legendary", "national", "miracle", "paradise", "research", "conservation", "community"].indexOf(result.endingId) >= 0) burst();
+
+    $("retryBtn").addEventListener("click", function () {
+      S.play("bubble");
+      history = [];
+      save();
+      if (location.search) window.history.replaceState(null, "", location.pathname);
+      renderTitle();
+    });
+    if (shared) return;
+
+    var url = M.share.shareUrl(result.history);
+    var text = M.share.shareText(story);
+    $("xBtn").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url);
+    $("lineBtn").href = "https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text);
+    $("copyBtn").addEventListener("click", function () {
+      M.share.copy(url).then(function () { toast("結果のURLをコピーしました"); }, function () { toast("コピーできませんでした"); });
+    });
+    $("shareBtn").addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: "MARINK AQUARIUM", text: text, url: url }).catch(function () {});
+      } else {
+        M.share.copy(text + " " + url).then(function () { toast("共有用の文章とURLをコピーしました"); }, function () { toast("コピーできませんでした"); });
+      }
+    });
+    $("saveBtn").addEventListener("click", saveImage);
+  }
+
+  function observeChapters() {
+    var els = app.querySelectorAll(".chapter");
+    if (!("IntersectionObserver" in window)) { els.forEach(function (e) { e.classList.add("in"); }); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
+    }, { threshold: 0.15 });
+    els.forEach(function (e) { io.observe(e); });
+  }
+
+  function burst() {
+    var b = document.createElement("div");
+    b.className = "burst";
+    var colors = ["#f2a79c", "#7cc0cf", "#f3d27a", "#9ccf9f", "#ffffff"];
+    for (var i = 0; i < 40; i++) {
+      var p = document.createElement("i");
+      p.style.left = (i * 37) % 100 + "%";
+      p.style.background = colors[i % 5];
+      p.style.animationDuration = 2.4 + (i % 7) * 0.35 + "s";
+      p.style.animationDelay = (i % 10) * 0.08 + "s";
+      b.appendChild(p);
+    }
+    document.body.appendChild(b);
+    setTimeout(function () { b.remove(); }, 5500);
+  }
+
+  function saveImage() {
+    if (!current) return;
+    var btn = $("saveBtn");
+    btn.disabled = true;
+    btn.textContent = "画像を作成中…";
+    M.share.makeImage(current.result, current.story).then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var name = "marink-aquarium-" + current.result.resultNumber + ".png";
+      var file = null;
+      try { file = new File([blob], name, { type: "image/png" }); } catch (e) {}
+      var canShareFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+      var modal = $("modal");
+      modal.innerHTML =
+        '<div class="modal__box"><img src="' + url + '" alt="結果画像">' +
+        "<p>iPhoneなどでは、画像を長押しして「写真に保存」もできます。<br>Instagramには、保存した画像を投稿してください。</p>" +
+        '<a class="btn btn--sea btn--small" href="' + url + '" download="' + name + '">PNG画像をダウンロード</a>' +
+        (canShareFile ? '<button class="btn btn--primary btn--small" id="shareFileBtn" type="button">画像を共有する</button>' : "") +
+        '<button class="btn btn--ghost btn--small" id="closeModal" type="button">閉じる</button></div>';
+      modal.hidden = false;
+      $("closeModal").addEventListener("click", function () { modal.hidden = true; URL.revokeObjectURL(url); });
+      if (canShareFile) $("shareFileBtn").addEventListener("click", function () {
+        navigator.share({ files: [file], text: M.share.shareText(current.story) }).catch(function () {});
+      });
+    }).catch(function (e) {
+      console.error(e);
+      toast("画像を作成できませんでした");
+    }).finally(function () {
+      btn.disabled = false;
+      btn.textContent = "結果画像を保存";
+    });
+  }
+
+  /* ───── 起動 ───── */
+  function init() {
+    decorate();
+    var sb = $("soundBtn");
+    sb.setAttribute("aria-pressed", S.isOn() ? "true" : "false");
+    sb.addEventListener("click", function () { sb.setAttribute("aria-pressed", S.toggle() ? "true" : "false"); });
+    $("backBtn").addEventListener("click", function () {
+      if (busy || !history.length || !$("sheet").hidden) return;
+      S.play("tap");
+      history.pop();
+      save();
+      goRound();
+    });
+    $("sheetBackdrop").addEventListener("click", function () {}); // 誤タップでシートを閉じない
+
+    var r = new URLSearchParams(location.search).get("r");
+    var shared = r && E.parseHistory(r);
+    if (shared && shared.length === 10) {
+      // 共有リンク：AIは呼ばず、テンプレートで同じ結果を再現する
+      var result = E.simulate(shared);
+      var story = M.story.buildStory(result);
+      renderResult(result, story, true);
+      return;
+    }
+    renderTitle();
+  }
+
+  init();
+})();

@@ -1,0 +1,116 @@
+// 全59,049通りの網羅テスト（AIは呼び出しません）
+// 実行: node tests/run-tests.js
+require("../js/data.js");
+require("../js/engine.js");
+require("../js/story.js");
+const M = globalThis.MARINK;
+const E = M.engine;
+const D = M.DATA;
+
+let failures = 0;
+const fail = (msg) => { if (failures < 30) console.error("NG:", msg); failures++; };
+const assert = (cond, msg) => { if (!cond) fail(msg); };
+
+// 1. データ構造: 全ラウンド・全バリエーションに3択がある
+D.rounds.forEach((r, i) => {
+  assert(r.round === i + 1, `round番号 ${r.id}`);
+  const sets = r.optionSets ? r.optionSets.map((s) => s.options) : [r.options];
+  sets.forEach((opts) => {
+    assert(["A", "B", "C"].every((k) => opts[k] && opts[k].label && opts[k].pros && opts[k].cons && opts[k].feedback), `${r.id} の3択が不完全`);
+    assert(Object.keys(opts).length === 3, `${r.id} 選択肢が3つでない`);
+    // 全能力が上がるだけの選択肢は禁止
+    Object.values(opts).forEach((o) => {
+      const vals = Object.entries(o.effects).filter(([k]) => k !== "debt").map(([, v]) => v);
+      assert(vals.some((v) => v < 0) || o.effects.debt > 0 || o.cons, `${r.id} ${o.label}: デメリットがない`);
+    });
+  });
+});
+assert(D.rounds.length === 10, "ラウンド数が10でない");
+
+// 2. 不正な入力を拒否する
+["ABD", "ABCABCABCAB", "abx", "", null].forEach((bad) => {
+  if (bad === "") { assert(E.parseHistory(bad) !== null, "空履歴は開始状態として有効"); return; }
+  assert(E.parseHistory(bad) === null, `不正な履歴を受け付けた: ${bad}`);
+});
+
+// 3. 全59,049通りを網羅
+const total = 3 ** 10;
+const endingCount = {};
+const ids = new Set();
+const sample = {};
+for (let n = 0; n < total; n++) {
+  let x = n;
+  const h = [];
+  for (let i = 0; i < 10; i++) { h.unshift("ABC"[x % 3]); x = Math.floor(x / 3); }
+  const hs = h.join("");
+
+  // 途中経過: どの時点でも次の問題が3択で出る
+  if (n % 97 === 0) {
+    for (let k = 0; k < 10; k++) {
+      const p = E.simulate(h.slice(0, k));
+      assert(p.next && p.next.round === k + 1 && p.next.question.options.length === 3, `${hs} 途中${k}`);
+    }
+  }
+
+  const r = E.simulate(h);
+  assert(r.steps.length === 10, `${hs} 10ラウンドで完結しない`);
+  assert(r.history.join("") === hs, `${hs} 履歴が保存されない`);
+  assert(D.endings[r.endingId], `${hs} エンディング未決定`);
+  assert(r.resultNumber === n, `${hs} 結果番号の不一致`);
+  ids.add(r.resultId);
+
+  for (const k of E.STAT_KEYS) {
+    const v = r.finalStats[k];
+    assert(Number.isFinite(v), `${hs} ${k} が数値でない`);
+    if (k !== "fund") assert(v >= 0 && v <= 100, `${hs} ${k}=${v} が範囲外`);
+  }
+  assert(r.finalStats.debt === 0, `${hs} 借入金が決算で処理されていない`);
+
+  // 資金の整合性: 各ステップの差分の合計 = 最終値
+  let fund = D.initialStats.fund;
+  r.steps.forEach((s) => {
+    s.events.forEach((e) => { fund += e.delta.fund || 0; });
+    fund += s.delta.fund || 0;
+    assert(fund === s.statsAfter.fund, `${hs} 第${s.round}問で資金計算が合わない`);
+  });
+  const ledgerSum = r.settlement.ledger.reduce((a, l) => a + l.value, 0);
+  assert(fund + ledgerSum === r.finalStats.fund, `${hs} 決算の資金計算が合わない`);
+
+  // 結末と状態の矛盾がない
+  const s = r.finalStats;
+  const goodEnds = ["legendary", "national", "paradise", "research", "conservation", "miracle", "community"];
+  if (goodEnds.includes(r.endingId)) assert(s.fund >= 0, `${hs} 赤字なのに成功エンド`);
+  if (r.endingId === "legendary") assert(s.welfare >= 70, `${hs} 伝説エンドなのに飼育環境が低い`);
+  if (["closure", "reorg"].includes(r.endingId)) assert(s.fund < 0, `${hs} 黒字なのに財務エンド`);
+  if (r.endingId === "miracle") assert(r.crisisSeen, `${hs} 危機なしの再建エンド`);
+  // 飼育条件: ジンベエザメは大水槽か新展示館があるときだけ
+  if (r.aquarium.bigFish === "full") assert(h[1] === "A" && ((h[2] === "A" && h[3] !== "B") || h[8] === "A"), `${hs} 設備なしでジンベエザメ`);
+
+  // テンプレート物語が履歴と矛盾しない
+  const st = M.story.buildStory(r);
+  const all = st.chapters.map((c) => c.text).join("") + st.finalSceneDescription;
+  assert(st.keyDecisions.length === 3, `${hs} 重要な選択が3つでない`);
+  if (r.aquarium.bigFish !== "full") assert(!/ジンベエザメ(が|を悠々|がゆったり)/.test(all), `${hs} 飼っていないジンベエザメが登場`);
+  if (h[1] !== "C") assert(!all.includes("クラゲたちが光"), `${hs} クラゲ展示がないのにクラゲ描写`);
+  if (r.endingId === "closure") assert(all.includes("閉館"), `${hs} 閉館エンドの描写がない`);
+  assert(!/undefined|null|NaN/.test(all + st.aquariumName + st.endingTitle), `${hs} 物語に未定義値`);
+
+  endingCount[r.endingId] = (endingCount[r.endingId] || 0) + 1;
+  if (!sample[r.endingId]) sample[r.endingId] = hs;
+}
+assert(ids.size === total, "結果IDが重複している");
+
+// 4. 決定性: 同じ履歴は同じ結果
+const a = E.simulate("ABCABCABCA"), b = E.simulate("ABCABCABCA");
+assert(JSON.stringify(a.finalStats) === JSON.stringify(b.finalStats) && a.endingId === b.endingId, "同じ履歴で結果が変わる");
+
+// 5. 到達不能エンディングがない
+Object.keys(D.endings).forEach((k) => assert(endingCount[k] > 0, `到達不能なエンディング: ${k}`));
+
+console.log("\n― エンディング発生割合（全59,049通り） ―");
+Object.keys(D.endings).forEach((k) => {
+  const c = endingCount[k] || 0;
+  console.log(`${D.endings[k].name}: ${c} (${((c / total) * 100).toFixed(1)}%)  例: ${sample[k] || "-"}`);
+});
+console.log(failures ? `\n失敗: ${failures} 件` : "\nすべてのテストに合格しました");
+process.exit(failures ? 1 : 0);

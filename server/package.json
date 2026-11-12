@@ -1,0 +1,18 @@
+{
+  "name": "marink-aquarium-story-server",
+  "private": true,
+  "type": "module",
+  "description": "MARINK AQUARIUM の AI 物語生成サーバー（Cloudflare Workers・任意）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/worker.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
