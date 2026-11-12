@@ -39,9 +39,9 @@
     E.STAT_KEYS.forEach(function (k) {
       if (!delta[k]) return;
       var up = delta[k] > 0;
-      items.push('<li class="delta ' + (up ? "up" : "down") + '">' + D.statLabels[k] + (up ? " ↑" : " ↓") + Math.abs(delta[k]) + "</li>");
+      items.push('<li class="delta ' + (up ? "up" : "down") + '">' + D.statLabels[k] + (up ? " ↑" : " ↓") + M.story.fmtVal(k, Math.abs(delta[k])) + "</li>");
     });
-    if (delta.debt) items.push('<li class="delta debt">借入金 ' + (delta.debt > 0 ? "+" : "") + delta.debt + "</li>");
+    if (delta.debt) items.push('<li class="delta debt">借入金 ' + M.story.money(delta.debt, true) + "</li>");
     return items.length ? '<ul class="deltas">' + items.join("") + "</ul>" : "";
   }
 
@@ -81,10 +81,10 @@
       var pct = k === "fund" ? Math.max(0, Math.min(100, (v / 150) * 100)) : v;
       var low = k === "fund" ? v < 20 : v < 40;
       var d = animate && prev ? v - prev[k] : 0;
-      var pop = d ? '<span class="hud__pop ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "+" : "") + d + "</span>" : "";
-      var debt = k === "fund" && stats.debt > 0 ? '<span class="hud__debt-badge">借入' + stats.debt + "</span>" : "";
+      var pop = d ? '<span class="hud__pop ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "+" : "") + d + (k === "fund" ? "億" : "") + "</span>" : "";
+      var debt = k === "fund" && stats.debt > 0 ? '<span class="hud__debt-badge">借入' + stats.debt + "億</span>" : "";
       return '<li class="hud__item' + (d ? (d > 0 ? " flash-up" : " flash-down") : "") + '" title="' + D.statLabels[k] + '">' +
-        '<span class="hud__label">' + HUD_LABEL[k] + '</span><span class="hud__val' + (v < 0 ? " neg" : "") + '">' + v + "</span>" +
+        '<span class="hud__label">' + HUD_LABEL[k] + '</span><span class="hud__val' + (v < 0 ? " neg" : "") + '">' + v + (k === "fund" ? '<small>億</small>' : "") + "</span>" +
         '<span class="hud__bar"><i class="' + (low ? "low" : "") + '" style="width:' + pct + '%"></i></span>' + pop + debt + "</li>";
     }).join("");
     if (animate) setTimeout(function () {
@@ -100,6 +100,48 @@
     $("progressLabel").textContent = "第" + round + "問 / 全10問";
     $("progressFill").style.width = ((round - 1) / 10) * 100 + "%";
     $("backBtn").disabled = history.length === 0;
+  }
+
+  /* ───── エンディング図鑑（この端末のブラウザにだけ保存） ───── */
+  var ZUKAN = "marink-zukan-v1";
+  function loadZukan() {
+    try { return JSON.parse(localStorage.getItem(ZUKAN)) || { found: {}, best: null }; } catch (e) { return { found: {}, best: null }; }
+  }
+  function saveZukan(result) {
+    var z = loadZukan();
+    var isNew = !z.found[result.endingId];
+    z.found[result.endingId] = true;
+    var o = M.story.overall(result);
+    if (!z.best || o.score > z.best.score) z.best = { score: o.score, rank: o.rank };
+    try { localStorage.setItem(ZUKAN, JSON.stringify(z)); } catch (e) {}
+    return { isNew: isNew, count: Object.keys(z.found).length };
+  }
+
+  function guideHtml() {
+    var z = loadZukan();
+    var ids = Object.keys(D.endings);
+    var count = ids.filter(function (k) { return z.found[k]; }).length;
+    var grid = ids.map(function (k) {
+      return z.found[k] ? '<li class="found">' + esc(D.endings[k].name.replace("エンド", "")) + "</li>" : "<li>？？？</li>";
+    }).join("");
+    return '<div class="guide">' +
+      '<section class="card goal"><span class="goal__tag">ゲームの目的</span>' +
+        "<h2>10回の決断で、<br>水族館の10年後を決めよう</h2>" +
+        "<p>限られた資金100億円で、立地・展示・スタッフ・入館料…を決めていく館長ゲーム。人気、生き物の暮らし、研究、信頼をすべて両立させて「伝説の水族館」を目指そう。でも、思いがけない未来が待っていることも…？</p></section>" +
+      '<ul class="hooks" style="margin-top:12px"><li><b>13種類</b>のエンディング</li><li><b>59,049</b>通りの未来</li><li><b>S〜D</b>の総合評価</li></ul>' +
+      '<section class="card" style="margin-top:12px"><h2 class="section-title">遊び方</h2><ol class="steps">' +
+        "<li><span><b>3つの選択肢から1つを選ぶ</b>正解はありません。どれにもメリットとデメリットがあります。</span></li>" +
+        "<li><span><b>資金や人気などが変化</b>資金（億円）・集客力など6つのパラメーターが動きます。前の選択が、あとで効いてくることも。※金額はゲーム用の目安です。</span></li>" +
+        "<li><span><b>10年後の結末を発表</b>あなただけの水族館のイラスト、10年間の物語、総合評価、「もしもの未来」がわかります。</span></li>" +
+      "</ol></section>" +
+      '<section class="card"><h2 class="section-title">こんな未来が待っているかも…</h2><p class="teaser">' +
+        "<span>観光地の海辺に、ジンベエザメが泳ぐ大水族館が誕生！</span>" +
+        "<span>小さなハゼの館が、町いちばんの人気者に。</span>" +
+        "<span>大人気なのに、金庫はからっぽ…まさかの閉館!?</span></p></section>" +
+      '<section class="card zukan"><div class="zukan__head"><h2 class="section-title" style="margin:0">エンディング図鑑</h2><span class="zukan__count">' + count + " / " + ids.length + "</span></div>" +
+        '<ul class="zukan__grid">' + grid + "</ul>" +
+        (z.best ? '<p class="zukan__best">これまでの最高評価：' + z.best.rank + "（" + z.best.score + "点）</p>" : '<p class="small-note">遊ぶと、たどり着いたエンディングがここに登録されます。全部見つけられるかな？</p>') +
+      "</section></div>";
   }
 
   /* ───── タイトル画面 ───── */
@@ -127,16 +169,20 @@
         '<ul class="chips"><li class="chip">約3〜5分</li><li class="chip">全10問・3択</li><li class="chip">無料・ログイン不要</li></ul>' +
         '<button class="btn btn--primary" id="startBtn" type="button">水族館をつくる！</button>' +
         resume +
+        guideHtml() +
+        '<button class="btn btn--primary" id="startBtn2" type="button" style="margin-top:18px">さっそく水族館をつくる！</button>' +
         '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       "</section>"
     );
-    $("startBtn").addEventListener("click", function () {
+    function start() {
       S.play("bubble");
       history = [];
       hudShown = null;
       save();
       goRound();
-    });
+    }
+    $("startBtn").addEventListener("click", start);
+    $("startBtn2").addEventListener("click", start);
     if ($("resumeBtn")) $("resumeBtn").addEventListener("click", function () {
       S.play("bubble");
       history = saved;
@@ -173,12 +219,21 @@
     $("toQuestion").addEventListener("click", function () { S.play("tap"); renderQuestion(next.question); });
   }
 
+  /* 選択肢のお金の動き（目安） */
+  function moneyTag(o) {
+    if (o.debtMultiplier !== undefined) return '<span class="option__money in">収入 ' + M.story.money(o.fund) + "・借入金が半分に</span>";
+    if (o.debt > 0) return '<span class="option__money loan">借入 ' + M.story.money(o.debt) + "（あとで利子つき返済）</span>";
+    if (o.fund < 0) return '<span class="option__money out">費用 約' + M.story.money(-o.fund) + "</span>";
+    if (o.fund > 0) return '<span class="option__money in">収入 約' + M.story.money(o.fund) + "</span>";
+    return "";
+  }
+
   function renderQuestion(q) {
     var opts = q.options.map(function (o) {
       return '<button class="option" type="button" data-id="' + o.id + '">' +
         '<span class="option__badge" aria-hidden="true">' + o.id + "</span>" +
         "<span><span class=\"option__label\">" + esc(o.label) + "</span>" +
-        '<span class="option__pc"><span class="p">＋ ' + esc(o.pros) + '</span><br><span class="c">－ ' + esc(o.cons) + "</span></span></span>" +
+        '<span class="option__pc"><span class="p">＋ ' + esc(o.pros) + '</span><br><span class="c">－ ' + esc(o.cons) + "</span></span>" + moneyTag(o) + "</span>" +
         "</button>";
     }).join("");
     show(
@@ -311,16 +366,36 @@
   function statCards(result) {
     return '<ul class="stat-cards">' + M.story.report(result).map(function (s) {
       var pct = s.key === "fund" ? Math.max(3, Math.min(100, (s.value + 50) / 2)) : Math.max(3, s.value);
-      var diff = (s.diff > 0 ? "+" : "") + s.diff;
-      var unit = s.key === "fund" ? (s.value >= 0 ? "黒字" : "赤字") : "";
       return '<li class="stat-card g-' + s.grade + '">' +
         '<span class="stat-card__grade" aria-label="評価' + s.grade + '">' + s.grade + "</span>" +
         '<div class="stat-card__body"><div class="stat-card__head"><b>' + s.label + "</b>" +
-        '<span class="stat-card__val' + (s.value < 0 ? " neg" : "") + '">' + s.value + (unit ? '<small>' + unit + "</small>" : "") + "</span></div>" +
+        '<span class="stat-card__val' + (s.value < 0 ? " neg" : "") + '">' + esc(s.valueText) + (s.key === "fund" ? "<small>" + s.extra + "</small>" : "") + "</span></div>" +
         '<span class="bar__track"><span class="bar__fill' + (s.gradeIndex <= 1 ? " neg" : "") + '" data-w="' + pct + '"></span></span>' +
-        '<div class="stat-card__meta"><span>スタート ' + s.start + " → " + s.value + '（<span class="' + (s.diff >= 0 ? "pos" : "neg") + '">' + diff + "</span>）</span></div>" +
+        '<div class="stat-card__meta"><span>スタート ' + esc(s.startText) + " → " + esc(s.valueText) + '（<span class="' + (s.diff >= 0 ? "pos" : "neg") + '">' + esc(s.diffText) + "</span>）</span>" +
+        (s.key === "pop" ? '<span class="stat-card__extra">' + esc(s.extra) + "</span>" : "") + "</div>" +
         '<p class="stat-card__comment">' + esc(s.comment) + "</p></div></li>";
     }).join("") + "</ul>";
+  }
+
+  /* 物語を1文ずつに分けて読みやすくする（金額・人数は太字） */
+  function sentences(text) {
+    var list = String(text).match(/[^。！？]+[。！？]+」?/g) || [text];
+    var rest = String(text).replace(/[^。！？]+[。！？]+」?/g, "").trim();
+    if (rest) list.push(rest);
+    return '<div class="chapter__lines">' + list.map(function (t) {
+      return "<p>" + esc(t.trim()).replace(/(-?\d+億円|約?\d+万人)/g, "<b>$1</b>") + "</p>";
+    }).join("") + "</div>";
+  }
+
+  /* 総合評価 */
+  function overallHtml(result) {
+    var o = M.story.overall(result);
+    return '<div class="overall g-' + o.rank + '">' +
+      '<div class="overall__rank" aria-label="総合評価' + o.rank + '">' + o.rank + "</div>" +
+      '<div class="overall__body"><span class="overall__label">総合評価</span><b class="overall__name">' + esc(o.name) + "</b>" +
+      '<span class="overall__score"><b>' + o.score + '</b> / 100点</span>' +
+      '<span class="bar__track"><span class="bar__fill" data-w="' + o.score + '"></span></span></div></div>' +
+      '<p class="small-note" style="margin:6px 0 0">6つのパラメーター（60%）と結末（40%）から計算した、水族館の経営結果の評価です。</p>';
   }
 
   /* 資金の推移グラフ */
@@ -346,13 +421,13 @@
       '<rect x="' + L + '" y="' + y(0) + '" width="' + (W - L - R) + '" height="' + Math.max(0, y(min) - y(0)) + '" fill="#fbecea" opacity=".7"/>' +
       '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#d9786e" stroke-dasharray="4 3" stroke-width="1"/>' +
       '<text x="' + (L - 4) + '" y="' + (y(0) + 3) + '" font-size="9.5" text-anchor="end" fill="#d9786e">0</text>' +
-      '<text x="' + (L - 4) + '" y="' + (y(100) + 3) + '" font-size="9.5" text-anchor="end" fill="#5b7290">100</text>' +
+      '<text x="' + (L - 4) + '" y="' + (y(100) + 3) + '" font-size="9.5" text-anchor="end" fill="#5b7290">100億</text>' +
       '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(100) + '" y2="' + y(100) + '" stroke="#e3ebef" stroke-width="1"/>' +
       '<path d="' + area + '" fill="rgba(124,192,207,.18)"/>' +
       '<path d="' + line + '" fill="none" stroke="#4fa6b8" stroke-width="2.5" stroke-linejoin="round"/>' +
       '<path d="' + line + '" fill="none" stroke="#d9786e" stroke-width="2.5" stroke-linejoin="round" clip-path="url(#negClip)"/>' +
       dots + xl +
-      '<text x="' + x(pts.length - 1).toFixed(1) + '" y="' + (y(last.value) - 9).toFixed(1) + '" font-size="11" font-weight="700" text-anchor="end" fill="' + (last.value < 0 ? "#d9786e" : "#2f4a6b") + '">' + last.value + "</text>" +
+      '<text x="' + x(pts.length - 1).toFixed(1) + '" y="' + (y(last.value) - 9).toFixed(1) + '" font-size="11" font-weight="700" text-anchor="end" fill="' + (last.value < 0 ? "#d9786e" : "#2f4a6b") + '">' + M.story.money(last.value) + "</text>" +
       "</svg>";
   }
 
@@ -379,7 +454,12 @@
     var src = story.source === "ai"
       ? '<span class="source-badge ai">✦ 物語：AI生成（Claude）</span>'
       : '<span class="source-badge">物語：テンプレート生成' + (story.failReason && story.failReason !== "disabled" ? "（AIに接続できなかったため）" : "") + "</span>";
-    var chapters = story.chapters.map(function (c) { return '<div class="chapter"><h3>' + esc(c.heading) + "</h3><p>" + esc(c.text) + "</p></div>"; }).join("");
+    var chapters = '<ol class="timeline">' + story.chapters.map(function (c, i) {
+      return '<li class="chapter' + (i === story.chapters.length - 1 ? " chapter--last" : "") + '">' +
+        '<span class="chapter__dot" aria-hidden="true"></span>' +
+        (c.era ? '<span class="chapter__era">' + esc(c.era) + "</span>" : "") +
+        "<h3>" + esc(c.heading) + "</h3>" + sentences(c.text) + "</li>";
+    }).join("") + "</ol>";
     var decisions = story.keyDecisions.map(function (d) {
       return '<div class="decision"><div class="decision__no">第' + d.round + "問</div><div>" +
         '<div class="decision__label">' + esc(d.label) + "</div>" +
@@ -387,13 +467,16 @@
         '<div class="decision__reason">' + esc(d.reason) + "</div></div></div>";
     }).join("");
     var ledger = result.settlement.ledger.map(function (l) {
-      var v = l.value ? (l.value > 0 ? "+" : "") + l.value : D.statLabels[l.stat] + " " + l.statValue;
+      var v = l.value ? M.story.money(l.value, true) : D.statLabels[l.stat] + " " + l.statValue;
       return "<li><span>" + esc(l.label) + '</span><span class="' + (l.value > 0 ? "pos" : "neg") + '">' + esc(v) + "</span></li>";
     }).join("");
     var record = result.steps.map(function (s) {
       return "<li><b>第" + s.round + "問　" + esc(s.title) + "</b>" + s.choice + "：" + esc(s.label) + "<br><span>" + esc(M.story.fmtDelta(s.delta) || "変化なし") + "</span></li>";
     }).join("");
     var tone = "tone-" + result.ending.mood;
+    var ov = M.story.overall(result);
+    var zk = shared ? null : saveZukan(result);
+    var total = Object.keys(D.endings).length;
 
     show(
       '<section class="result-top">' +
@@ -401,16 +484,18 @@
         '<div class="result-art">' + art + "</div>" +
         '<p class="result-name">' + (shared ? "友達の水族館" : "あなたの水族館") + "<b>" + esc(story.aquariumName) + "</b></p>" +
         '<span class="ending-badge ' + tone + '">' + esc(story.endingCategory) + "</span>" +
+        (zk && zk.isNew ? '<span class="new-badge">NEW! 図鑑に登録（' + zk.count + " / " + total + "）</span>" : "") +
         '<h1 class="ending-title">『' + esc(story.endingTitle) + "』</h1>" +
-        '<p class="ending-summary">' + esc(story.shortSummary) + "</p>" + src +
+        '<p class="ending-summary">' + esc(story.shortSummary) + "</p>" +
+        '<div class="overall-mini g-' + ov.rank + '"><span>総合評価</span><b>' + ov.rank + "</b><em>" + ov.score + "点</em></div>" + src +
       "</section>" +
       '<section class="card" style="margin-top:18px"><h2 class="section-title">水族館の特徴</h2><ul class="feature-list">' +
         story.features.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul></section>" +
-      '<section class="card"><h2 class="section-title">10年間の経営レポート</h2>' + radar(result.finalStats) + statCards(result) +
+      '<section class="card"><h2 class="section-title">10年間の経営レポート</h2>' + overallHtml(result) + radar(result.finalStats) + statCards(result) +
         '<p class="small-note">評価はS・A・B・C・Dの5段階。※ 数値はゲーム内だけの指標で、現実の水族館の評価ではありません。</p></section>' +
       '<section class="card"><h2 class="section-title">資金余力の推移</h2>' + fundChart(result) +
         '<p class="small-note" style="margin-top:4px">数字は各問を選んだあとの資金余力。赤いゾーンは赤字です。</p>' +
-        '<h3 class="sub-title">10年後の決算</h3><ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + result.finalStats.fund + "</span></li></ul></section>" +
+        '<h3 class="sub-title">10年後の決算</h3><ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + M.story.money(result.finalStats.fund) + "</span></li></ul></section>" +
       '<section class="card"><h2 class="section-title">10年間の物語</h2>' + chapters + "</section>" +
       '<section class="card"><h2 class="section-title">運命を変えた3つの選択</h2>' + decisions + "</section>" +
       whatIfHtml(result) +
@@ -420,7 +505,8 @@
         '<section class="card"><h2 class="section-title">結果をシェアする</h2>' +
         '<div class="share-grid"><a class="btn btn--ghost" id="xBtn" target="_blank" rel="noopener">Xでポスト</a><a class="btn btn--ghost" id="lineBtn" target="_blank" rel="noopener">LINEで送る</a><button class="btn btn--ghost" id="copyBtn" type="button">URLコピー</button></div>' +
         '<p class="small-note">Instagramには「結果画像を保存」で保存した画像を投稿してください。</p>' +
-        '<button class="btn btn--primary" id="retryBtn" type="button" style="margin-top:14px">もう一度つくる</button></section>') +
+        '<p class="replay-hook">まだ見ていないエンディングが<b>あと' + (total - zk.count) + "種類</b>。<br>ちがう選択をしたら、どんな未来になる？</p>" +
+        '<button class="btn btn--primary" id="retryBtn" type="button" style="margin-top:10px">別の未来を見にいく！</button></section>') +
       '<p class="result-id">結果ID：' + esc(result.resultId) + "</p>" +
       '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       '<div class="result-actions">' +

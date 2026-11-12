@@ -29,6 +29,12 @@
 
     initialStats: { fund: 100, pop: 50, welfare: 50, staff: 50, research: 50, trust: 50, debt: 0 },
 
+    /* 具体的な数字での表示ルール
+     * 資金余力・借入金：1ポイント = 1億円（スタートは100億円）
+     * 集客力：1ポイント = 年間来館者 2万人（集客力50 = 年間100万人） */
+    money: { perPoint: 1, unit: "億円" },
+    visitors: { perPoint: 2, min: 5, unit: "万人" },
+
     /* ───────────── 全10ラウンド ───────────── */
     rounds: [
       /* 第1問 */
@@ -40,24 +46,24 @@
         options: {
           A: {
             label: "人気観光地の海沿い",
-            pros: "観光客が集まりやすい",
-            cons: "土地代がとても高い",
+            pros: "年中観光客が多く、集客しやすい",
+            cons: "土地代が周辺相場の約3倍",
             effects: { fund: -30, pop: 15, research: -5 },
             flags: ["loc_tourist"],
             feedback: "観光客でにぎわう海沿いに決定！ 土地代の請求書には、ちょっとドキッ。",
           },
           B: {
             label: "静かで自然豊かな海辺",
-            pros: "土地代が安く、海がきれい",
-            cons: "交通アクセスが不便",
+            pros: "海がきれいで、土地も安い",
+            cons: "最寄り駅からバスで40分",
             effects: { fund: -10, pop: -10, welfare: 10, trust: 5 },
             flags: ["loc_nature"],
             feedback: "聞こえるのは波の音だけ。生き物たちも落ち着いて暮らせそう。",
           },
           C: {
             label: "大学や研究所が集まる街",
-            pros: "研究機関と協力できる",
-            cons: "観光客を呼ぶ工夫が必要",
+            pros: "大学と共同研究ができる",
+            cons: "観光客が少ない地域",
             effects: { fund: -20, research: 15, pop: -5 },
             flags: ["loc_campus"],
             feedback: "白衣の研究者たちがご近所さんに。学びの水族館になりそう！",
@@ -79,8 +85,8 @@
         options: {
           A: {
             label: "大型魚の迫力展示",
-            pros: "ジンベエザメやエイで話題性大",
-            cons: "巨大な水槽と高い維持費",
+            pros: "ジンベエザメ級の展示で話題性大",
+            cons: "水量数千トンの巨大水槽が必要",
             effects: { fund: -25, pop: 15, welfare: -5 },
             flags: ["main_big"],
             feedback: "目指すは海の巨人たちが泳ぐ水族館！ ただし巨大な水槽が必要だ。",
@@ -88,8 +94,8 @@
           },
           B: {
             label: "個性派の小さな魚たち",
-            pros: "ハゼやギンポなど種類が豊富",
-            cons: "見せ方に工夫が必要",
+            pros: "ハゼやギンポなど数百種を展示",
+            cons: "小さくて見落とされがち",
             effects: { fund: -5, pop: -5, research: 6, welfare: 5 },
             flags: ["main_small"],
             feedback: "主役は小さな名脇役たち。よく見ると、みんな表情豊か！",
@@ -97,8 +103,8 @@
           },
           C: {
             label: "クラゲと深海の幻想展示",
-            pros: "ほかにない幻想的な世界",
-            cons: "専用設備と専門技術が必要",
+            pros: "写真映えして若い世代に人気",
+            cons: "冷却・水流の特殊設備が必要",
             effects: { fund: -15, pop: 10, research: 5, staff: -5 },
             flags: ["main_deep"],
             feedback: "ふわふわ漂うクラゲと、ふしぎな深海生物。幻想の世界へようこそ。",
@@ -121,8 +127,8 @@
         options: {
           A: {
             label: "水槽の大きさと迫力",
-            pros: "見ごたえ抜群の展示に",
-            cons: "建設費が大きく増える",
+            pros: "大型アクリルパネルで迫力満点",
+            cons: "アクリルは1枚数億円することも",
             effects: { fund: -20, pop: 12, welfare: -3 },
             flags: ["big_tanks"],
             conditional: [
@@ -137,16 +143,16 @@
           },
           B: {
             label: "展示する生き物の種類",
-            pros: "多様な生き物に出会える",
-            cons: "管理がとても複雑になる",
+            pros: "300種以上の図鑑のような館に",
+            cons: "水槽が増えて世話が大変",
             effects: { fund: -10, research: 5, pop: 6, staff: -8 },
             flags: ["variety"],
             feedback: "水槽ごとに違う世界。図鑑の中を歩いているみたい！",
           },
           C: {
             label: "設備の信頼性と飼育環境",
-            pros: "生き物が健康に暮らせる",
-            cons: "開館時の華やかさは控えめ",
+            pros: "ろ過装置と予備電源を二重化",
+            cons: "見た目は地味になる",
             effects: { fund: -12, welfare: 15, pop: -5, trust: 3 },
             flags: ["reliable"],
             feedback: "見えない所こそ丁寧に。ろ過装置も水温管理も万全だ。",
@@ -168,7 +174,7 @@
           A: {
             label: "融資を受けて予定通り開館",
             pros: "予定どおりオープンできる",
-            cons: "あとで利子をつけて返済",
+            cons: "金利年2%・10年で利子約8億円",
             effects: { fund: 40, debt: 40, pop: 3 },
             flags: ["loan"],
             feedback: "銀行の融資で、なんとか予定どおり開館へ。返済は未来の自分に託す…！",
@@ -176,7 +182,7 @@
           B: {
             label: "展示を縮小して開館",
             pros: "出費をおさえられる",
-            cons: "展示の魅力が下がる",
+            cons: "展示エリアが約2割減る",
             effects: { fund: 15, pop: -8 },
             flags: ["downsized"],
             conditional: [
@@ -196,8 +202,8 @@
           },
           C: {
             label: "開館を延期して資金集め",
-            pros: "財政が安定する",
-            cons: "開館が遅れ、期待が冷める",
+            pros: "寄付や協賛金を集められる",
+            cons: "開館が半年遅れ、期待が冷める",
             effects: { fund: 25, pop: -6, trust: -4, staff: 5 },
             flags: ["delayed"],
             feedback: "開館は半年延期。その間にスタッフの研修をじっくり進めることに。",
@@ -219,24 +225,24 @@
         options: {
           A: {
             label: "経験豊富なベテラン",
-            pros: "確かな技術で安心",
-            cons: "人件費が高い",
+            pros: "経験20年以上の10人体制",
+            cons: "給料が高く、人件費がかさむ",
             effects: { fund: -20, staff: 15, welfare: 10 },
             flags: ["staff_vet"],
             feedback: "その道30年の大ベテランが仲間に。生き物たちの顔色が、なんだか良くなった。",
           },
           B: {
             label: "新人をたくさん採用",
-            pros: "将来大きく成長するかも",
-            cons: "最初は教育が大変",
+            pros: "新卒など30人を採用できる",
+            cons: "一人前になるまで約3年",
             effects: { fund: -8, staff: -5, welfare: -3, trust: 3 },
             flags: ["staff_rookie"],
             feedback: "フレッシュな新人がずらり！ 失敗も多いけれど、やる気は満点。",
           },
           C: {
             label: "少数精鋭の専門チーム",
-            pros: "専門的な展示に強い",
-            cons: "人手に余裕がない",
+            pros: "博士号を持つ専門家5人",
+            cons: "少人数で休みが取りにくい",
             effects: { fund: -14, staff: 3, research: 8, welfare: 5 },
             flags: ["staff_elite", "understaffed"],
             conditional: [
@@ -269,9 +275,9 @@
         ],
         options: {
           A: {
-            label: "高めの価格で特別な体験",
+            label: "高めの価格（大人3,500円）",
             pros: "1人あたりの収入が多い",
-            cons: "気軽に来にくくなる",
+            cons: "家族連れには高く感じる",
             effects: { fund: 18, pop: -8, trust: -3 },
             flags: ["price_high"],
             conditional: [
@@ -284,17 +290,17 @@
             feedback: "ゆったり上質な水族館体験を。お客さんの満足度は高そう。",
           },
           B: {
-            label: "ふつうの価格",
-            pros: "収入と客数のバランス型",
+            label: "ふつうの価格（大人2,400円）",
+            pros: "全国の水族館の平均的な価格",
             cons: "強い個性は出にくい",
             effects: { fund: 10, pop: 4 },
             flags: ["price_mid"],
             feedback: "大人も子どもも来やすい、ちょうどいい価格に。",
           },
           C: {
-            label: "低価格でたくさんの人に",
+            label: "お手ごろ価格（大人1,500円）",
             pros: "家族連れが気軽に来られる",
-            cons: "混雑し、収益は少なめ",
+            cons: "混雑し、1人あたりの収入は少ない",
             effects: { fund: -2, pop: 15, trust: 8, staff: -5 },
             flags: ["price_low"],
             feedback: "週末は家族連れで大にぎわい！ スタッフはちょっとバタバタ。",
@@ -317,8 +323,8 @@
         options: {
           A: {
             label: "設備を全面リニューアル",
-            pros: "長く安心して使える",
-            cons: "大きな出費になる",
+            pros: "最新設備で15年は安心",
+            cons: "工事中は一部の展示が止まる",
             effects: { fund: -28, welfare: 15, trust: 5 },
             flags: ["renewed"],
             conditional: [
@@ -333,7 +339,7 @@
           B: {
             label: "展示を休止して修繕",
             pros: "安全第一で確実に直す",
-            cons: "展示が一時的に減る",
+            cons: "約3か月、展示が減る",
             effects: { fund: -10, pop: -8, welfare: 6, trust: 5 },
             flags: ["paused"],
             conditional: [
@@ -347,8 +353,8 @@
           },
           C: {
             label: "専門業者と長期保守契約",
-            pros: "プロに任せて安心",
-            cons: "毎年の固定費が増える",
+            pros: "24時間の監視と修理つき",
+            cons: "毎年約1億円の契約料",
             effects: { fund: -8, welfare: 10, staff: 5 },
             flags: ["contract"],
             feedback: "設備のプロと長期契約。スタッフは生き物の世話に集中できる。",
@@ -373,9 +379,9 @@
         ],
         options: {
           A: {
-            label: "営業時間を延長する",
-            pros: "売上アップが見込める",
-            cons: "スタッフの負担が増える",
+            label: "営業時間を夜21時まで延長",
+            pros: "夜の水族館で売上アップ",
+            cons: "残業が増え、スタッフが疲れる",
             effects: { fund: 18, pop: 8, staff: -12, welfare: -4 },
             flags: ["extended"],
             conditional: [
@@ -389,16 +395,16 @@
           },
           B: {
             label: "予約制で混雑を管理",
-            pros: "ゆったり楽しめる",
-            cons: "受け入れ人数に限りがある",
+            pros: "1時間ごとの入場人数を制限",
+            cons: "チケットが取れない人も",
             effects: { fund: 5, pop: -3, trust: 10, welfare: 5 },
             flags: ["reservation"],
             feedback: "予約制で、どの時間もゆったり。生き物たちもストレス少なめ。",
           },
           C: {
             label: "スタッフと設備を増強",
-            pros: "長期的に強い水族館に",
-            cons: "先行投資が必要",
+            pros: "スタッフを20人増員",
+            cons: "人件費と設備費が先にかかる",
             effects: { fund: -18, staff: 15, pop: 5 },
             flags: ["expanded_staff"],
             removeFlags: ["understaffed"],
@@ -420,8 +426,8 @@
         options: {
           A: {
             label: "大型の新展示館を建設",
-            pros: "話題性バツグン",
-            cons: "大きな投資が必要",
+            pros: "新館オープンで話題性バツグン",
+            cons: "完成まで約2年かかる",
             effects: { fund: -32, pop: 16 },
             flags: ["new_wing"],
             conditional: [
@@ -436,7 +442,7 @@
           },
           B: {
             label: "研究・保全活動を強化",
-            pros: "教育・研究の価値が高まる",
+            pros: "絶滅危惧種の繁殖研究に挑戦",
             cons: "観光の目玉にはなりにくい",
             effects: { fund: -14, research: 15, trust: 8, pop: -3 },
             flags: ["conservation"],
@@ -448,7 +454,7 @@
           },
           C: {
             label: "スタッフ待遇と設備を改善",
-            pros: "働きやすく運営が安定",
+            pros: "給料アップと休憩室の改装",
             cons: "目に見える変化は少ない",
             effects: { fund: -14, staff: 15, welfare: 8, trust: 3 },
             flags: ["care"],

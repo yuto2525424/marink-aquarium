@@ -49,9 +49,9 @@
       tagline: data.tagline,
       shortSummary: data.shortSummary,
       chapters: [
-        { heading: "第1章　はじまり", text: data.storyBeginning },
-        { heading: "第2章　運命の転機", text: data.storyMiddle },
-        { heading: "最終章　10年後の水族館", text: data.storyEnding },
+        { heading: "第1章　はじまり", era: "開館まで", text: data.storyBeginning },
+        { heading: "第2章　運命の転機", era: "開館〜8年目", text: data.storyMiddle },
+        { heading: "最終章　10年後の水族館", era: "10年後", text: data.storyEnding },
       ],
       keyDecisions: keyDecisions,
       finalSceneDescription: data.finalSceneDescription,

@@ -51,7 +51,7 @@
     var a = r.aquarium;
     var t = ["あなたが水族館を建てたのは、" + LOC[a.location].scene + "。" + LOC[a.location].line, mainLine(a)];
     t.push({ A: "建設予算の多くを、水槽の大きさと迫力に注ぎこんだ。", B: "建設予算は、展示する生き物の種類を増やすことに使った。", C: "建設予算は、目立たない設備の信頼性と飼育環境に使った。" }[ch(r, 3)]);
-    t.push({ A: "開館直前の資金不足は、銀行の融資で乗り切った。", B: "開館直前の資金不足には、展示を縮小して対応した。", C: "開館直前の資金不足を受けて、開館を半年延期した。" }[ch(r, 4)]);
+    t.push({ A: "開館直前の資金不足は、銀行からの40億円の融資で乗り切った。", B: "開館直前の資金不足には、展示を縮小して対応した。", C: "開館直前の資金不足を受けて、開館を半年延期した。" }[ch(r, 4)]);
     stepOf(r, 4).notes.forEach(function (n) { t.push(n); });
     return t.join("");
   }
@@ -59,8 +59,8 @@
   function chapter2(r) {
     var a = r.aquarium;
     var t = [];
-    t.push({ A: "飼育チームには経験豊富なベテランを迎え、", B: "飼育チームには新人をたくさん採用し、", C: "飼育チームは少数精鋭の専門家で固め、" }[ch(r, 5)]);
-    t.push({ A: "入館料は高めに設定して特別な体験を売りにした。", B: "入館料はふつうの価格にして幅広い人を迎えた。", C: "入館料は安くして、たくさんの人が気軽に来られるようにした。" }[ch(r, 6)]);
+    t.push({ A: "飼育チームには経験20年以上のベテラン10人を迎え、", B: "飼育チームには新人30人を採用し、", C: "飼育チームは博士号を持つ専門家5人で固め、" }[ch(r, 5)]);
+    t.push({ A: "入館料は大人3,500円と高めにして、特別な体験を売りにした。", B: "入館料は大人2,400円のふつうの価格にして、幅広い人を迎えた。", C: "入館料は大人1,500円とお手ごろにして、たくさんの人が気軽に来られるようにした。" }[ch(r, 6)]);
     var trouble = a.main === "big" ? "大型水槽の設備" : a.main === "small" ? "たくさんの小さな水槽のろ過装置" : "クラゲ水槽の水流装置と深海水槽の冷却装置";
     t.push("開館3年目、" + trouble + "に不具合が見つかったときは、" + { A: "思い切って設備を全面リニューアルした。", B: "展示を休止して、安全第一で修繕した。", C: "専門業者と長期の保守契約を結んで対応した。" }[ch(r, 7)]);
     var buzz = a.main === "big" ? "大水槽の写真" : a.main === "small" ? "「変顔のハゼ」動画" : "幻想的なクラゲの写真";
@@ -110,7 +110,7 @@
       closure: (s.pop >= 70 ? "来館者はたくさん来てくれた。それでも、" : "") + "10年目の決算は、大きな赤字。" + (bad ? bad + "が最後の決め手となり、" : "") + name + "は閉館を決めた。最後の日、たくさんの人が別れを言いに訪れた。生き物たちは全国の水族館へ引っ越し、新しい場所で元気に暮らしている。",
       steady: "大事件も大ブームもない10年だった。けれど、" + name + "は今日も変わらず扉を開ける。" + main + "を眺めながら、のんびり過ごす常連さんたちがいる。",
     };
-    return T[r.endingId];
+    return T[r.endingId] + "10年後の資金余力は" + money(s.fund) + "、年間の来館者はおよそ" + visitors(s.pop).slice(1) + "。";
   }
 
   function finalScene(r, name) {
@@ -151,10 +151,24 @@
     return list;
   }
 
+  /* ── 具体的な数字の表示 ── */
+  function money(v, signed) {
+    var n = v * D.money.perPoint;
+    return (signed && n > 0 ? "+" : "") + n + D.money.unit;
+  }
+  function visitors(pop) {
+    return "約" + Math.max(D.visitors.min, Math.round(pop * D.visitors.perPoint)) + D.visitors.unit;
+  }
+  /* パラメーターの値を表示用の文字にする（資金と借入金は金額） */
+  function fmtVal(k, v, signed) {
+    if (k === "fund" || k === "debt") return money(v, signed);
+    return (signed && v > 0 ? "+" : "") + v;
+  }
+
   function fmtDelta(delta) {
     return E.STAT_KEYS.filter(function (k) { return delta[k]; })
-      .map(function (k) { return D.statLabels[k] + (delta[k] > 0 ? " +" : " ") + delta[k]; })
-      .concat(delta.debt ? ["借入金 " + (delta.debt > 0 ? "+" : "") + delta.debt] : [])
+      .map(function (k) { return D.statLabels[k] + " " + fmtVal(k, delta[k], true); })
+      .concat(delta.debt ? ["借入金 " + money(delta.debt, true)] : [])
       .join(" / ");
   }
 
@@ -234,10 +248,10 @@
       tagline: name + "は「" + title + "」に！",
       shortSummary: r.ending.summary,
       chapters: [
-        { heading: "第1章　はじまり", text: chapter1(r) },
-        { heading: "第2章　運命の転機", text: chapter2(r) },
-        { heading: "第3章　次なる挑戦", text: chapter3(r) },
-        { heading: "最終章　10年後の水族館", text: finale(r, name) },
+        { heading: "第1章　はじまり", era: "開館まで", text: chapter1(r) },
+        { heading: "第2章　運命の転機", era: "開館〜5年目", text: chapter2(r) },
+        { heading: "第3章　次なる挑戦", era: "5〜10年目", text: chapter3(r) },
+        { heading: "最終章　10年後の水族館", era: "10年後", text: finale(r, name) },
       ],
       keyDecisions: keyDecisions(r),
       finalSceneDescription: finalScene(r, name),
@@ -267,7 +281,9 @@
     return E.STAT_KEYS.map(function (k) {
       var v = r.finalStats[k];
       var gi = gradeIndex(k, v);
-      return { key: k, label: D.statLabels[k], value: v, start: D.initialStats[k], diff: v - D.initialStats[k], grade: GRADES[gi], gradeIndex: gi, comment: COMMENTS[k][gi] };
+      return { key: k, label: D.statLabels[k], value: v, start: D.initialStats[k], diff: v - D.initialStats[k], grade: GRADES[gi], gradeIndex: gi, comment: COMMENTS[k][gi],
+        valueText: fmtVal(k, v), startText: fmtVal(k, D.initialStats[k]), diffText: fmtVal(k, v - D.initialStats[k], true),
+        extra: k === "pop" ? "年間来館者 " + visitors(v) : k === "fund" ? (v >= 0 ? "黒字" : "赤字") : "" };
     });
   }
 
@@ -282,6 +298,26 @@
   /* ───── もしもの未来：1問だけ別の選択をしたら？ ─────
    * ほかの選択はそのままにして、実際に計算し直した結果だけを表示する */
   var TIER = { legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
+
+  /* ───── 総合評価（水族館の経営結果に対する評価。プレイヤーの評価ではない） ─────
+   * 6つのパラメーターの平均（60%）＋ 結末（40%）で100点満点 */
+  var OVERALL = [
+    { min: 83, rank: "S", name: "伝説級の水族館" },
+    { min: 75, rank: "A", name: "一流の水族館" },
+    { min: 68, rank: "B", name: "評判の水族館" },
+    { min: 47, rank: "C", name: "発展途上の水族館" },
+    { min: -1, rank: "D", name: "再起を待つ水族館" },
+  ];
+  function overall(r) {
+    var s = r.finalStats;
+    var parts = E.STAT_KEYS.map(function (k) {
+      return k === "fund" ? Math.max(0, Math.min(100, (s.fund + 20) / 1.2)) : s[k];
+    });
+    var avg = parts.reduce(function (a, b) { return a + b; }, 0) / parts.length;
+    var score = Math.round(avg * 0.6 + (TIER[r.endingId] / 10) * 100 * 0.4);
+    var o = OVERALL.filter(function (x) { return score >= x.min; })[0];
+    return { score: score, rank: o.rank, name: o.name };
+  }
 
   function whatIf(r) {
     var base = r.history;
@@ -329,7 +365,7 @@
     }
     return out.slice(0, 2).map(function (a) {
       var b = a.biggest;
-      var change = b && b.diff ? b.label + " " + b.from + " → " + b.to : "";
+      var change = b && b.diff ? b.label + " " + fmtVal(b.key, b.from) + " → " + fmtVal(b.key, b.to) : "";
       var text;
       if (a.kind === "better") text = "あの時こうしていれば、未来は変わったかも…。「" + a.endingName + "」にたどり着いていたかもしれません。";
       else if (a.kind === "worse") text = "じつはここが分かれ道。もしこちらを選んでいたら、「" + a.endingName + "」になっていたかも…。あぶなかった！";
@@ -339,5 +375,5 @@
     });
   }
 
-  M.story = { buildStory: buildStory, fmtDelta: fmtDelta, mainShort: mainShort, report: report, fundTrend: fundTrend, whatIf: whatIf, gradeIndex: gradeIndex };
+  M.story = { buildStory: buildStory, fmtDelta: fmtDelta, money: money, visitors: visitors, fmtVal: fmtVal, mainShort: mainShort, report: report, overall: overall, fundTrend: fundTrend, whatIf: whatIf, gradeIndex: gradeIndex };
 })(typeof window !== "undefined" ? window : globalThis);

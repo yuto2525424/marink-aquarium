@@ -309,7 +309,14 @@
         events: nextEvents,
         question: {
           id: nq.id, round: nq.round, title: nq.title, description: nq.description, mode: nq.mode,
-          options: nq.options.map(function (o) { return { id: o.id, label: o.label, pros: o.pros, cons: o.cons }; }),
+          options: nq.options.map(function (o) {
+            // お金の動き（目安）：今の状況で当てはまる条件付き効果も含めて計算
+            var fund = o._def.effects.fund || 0, debt = o._def.effects.debt || 0;
+            (o._def.conditional || []).forEach(function (c) {
+              if (evalCond(c.when, probe)) { fund += (c.effects && c.effects.fund) || 0; debt += (c.effects && c.effects.debt) || 0; }
+            });
+            return { id: o.id, label: o.label, pros: o.pros, cons: o.cons, fund: fund, debt: debt, debtMultiplier: o._def.debtMultiplier };
+          }),
         },
       };
       out.stats = probe.stats;

@@ -84,7 +84,8 @@
 
       // エンディング帯
       ctx.font = "900 26px " + FONT;
-      var cat = story.endingCategory;
+      var ov = M.story.overall(result);
+      var cat = story.endingCategory + "　｜　総合評価 " + ov.rank + "（" + ov.score + "点）";
       var cw = ctx.measureText(cat).width + 60;
       roundRect(ctx, (W - cw) / 2, 852, cw, 52, 26);
       ctx.fillStyle = { dusk: "#8a86ad", night: "#8a86ad", warm: "#f08f84" }[result.ending.mood] || "#4fa6b8";
@@ -112,7 +113,7 @@
         var col = i % 3, row = Math.floor(i / 3);
         var x = 90 + col * 310, y = top + row * 44;
         ctx.font = "700 20px " + FONT; ctx.fillStyle = "#2f4a6b";
-        ctx.fillText(labels[k], x, y);
+        ctx.fillText(k === "fund" ? "資金 " + M.story.money(fs.fund) : labels[k], x, y);
         var v = k === "fund" ? Math.max(0, Math.min(100, (fs.fund + 30) / 1.6)) : fs[k];
         roundRect(ctx, x + 150, y - 15, 125, 14, 7); ctx.fillStyle = "#e3ebef"; ctx.fill();
         roundRect(ctx, x + 150, y - 15, Math.max(14, 125 * v / 100), 14, 7);
