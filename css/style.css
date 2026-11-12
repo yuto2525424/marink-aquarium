@@ -464,3 +464,18 @@ details.record[open] summary::after { content: "－"; }
 @keyframes pulse { 50% { transform: scale(1.06); } }
 .replay-hook { margin: 16px 0 0; text-align: center; font-size: 14.5px; line-height: 1.8; }
 .replay-hook b { color: var(--coral); }
+
+/* ───── 名前を決める画面 ───── */
+.name-screen { padding-top: 8px; }
+.name-card { margin-top: 16px; }
+.name-label { display: block; font-size: 13px; font-weight: 900; margin-bottom: 6px; }
+.name-input { width: 100%; font: inherit; font-size: 18px; font-weight: 700; color: var(--ink); padding: 14px 16px; border-radius: 16px; border: 2px solid var(--line); background: #fff; outline: none; }
+.name-input:focus { border-color: var(--sea); box-shadow: 0 0 0 4px rgba(124, 192, 207, .25); }
+.name-preview { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.name-preview__label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.name-preview__sign { flex: 1; min-width: 0; text-align: center; padding: 8px 14px; border-radius: 99px; background: #fffaf0; border: 2px solid var(--coral-soft); font-weight: 900; font-size: 16px; overflow-wrap: anywhere; }
+.name-ideas__title { margin: 16px 0 8px; font-size: 13px; font-weight: 700; }
+.name-ideas { display: flex; flex-wrap: wrap; gap: 8px; }
+.name-idea { border: 0; cursor: pointer; font-size: 14px; font-weight: 700; padding: 10px 14px; border-radius: 99px; background: #eaf6f9; color: var(--teal-deep); min-height: 44px; }
+.name-idea:active { transform: scale(.96); }
+.q-owner { margin: 0 0 8px; font-size: 13px; font-weight: 900; color: var(--coral); }

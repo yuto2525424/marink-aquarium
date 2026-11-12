@@ -16,7 +16,12 @@
   function esc(t) {
     return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
   }
-  function save() { try { sessionStorage.setItem(STORE, history.join("")); } catch (e) {} }
+  var aqName = "";
+  var NAME_STORE = "marink-name";
+  function save() {
+    try { sessionStorage.setItem(STORE, history.join("")); sessionStorage.setItem(NAME_STORE, aqName); } catch (e) {}
+  }
+  function loadName() { try { return M.story.cleanName(sessionStorage.getItem(NAME_STORE) || ""); } catch (e) { return ""; } }
   function load() { try { return E.parseHistory(sessionStorage.getItem(STORE) || "") || []; } catch (e) { return []; } }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -176,19 +181,66 @@
     );
     function start() {
       S.play("bubble");
-      history = [];
-      hudShown = null;
-      save();
-      goRound();
+      renderNameScreen(loadName());
     }
     $("startBtn").addEventListener("click", start);
     $("startBtn2").addEventListener("click", start);
     if ($("resumeBtn")) $("resumeBtn").addEventListener("click", function () {
       S.play("bubble");
       history = saved;
+      aqName = loadName();
       hudShown = null;
       goRound();
     });
+  }
+
+  /* ───── 水族館の名前を決める画面 ───── */
+  var NAME_IDEAS = ["まりんく水族館", "うみかぜ水族館", "さんごの森アクアリウム", "ほしぞら水族館", "なみおと館", "あおいうみ水族館", "ぷかぷか水族館", "しおさい水族館", "ゆめのうみ水族館", "きらめき海の館"];
+  function renderNameScreen(prefill) {
+    topbar(false);
+    var ideas = NAME_IDEAS.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4);
+    show(
+      '<section class="name-screen">' +
+        '<p class="q-round" style="display:inline-block">はじめに</p>' +
+        '<h2 class="q-title">あなたの水族館に<br>名前をつけよう</h2>' +
+        '<p class="q-desc">この名前が、看板や10年間の物語、結果画面に登場します。</p>' +
+        '<div class="card name-card">' +
+          '<label class="name-label" for="nameInput">水族館の名前（' + M.story.NAME_MAX + '文字まで）</label>' +
+          '<input id="nameInput" class="name-input" type="text" maxlength="' + M.story.NAME_MAX + '" autocomplete="off" enterkeyhint="done" placeholder="例：まりんく水族館" value="' + esc(prefill || "") + '">' +
+          '<div class="name-preview" aria-live="polite"><span class="name-preview__label">看板</span><span class="name-preview__sign" id="namePreview"></span></div>' +
+          '<p class="small-note" style="margin:8px 0 0">「〇〇水族館」「〇〇館」で終わらない名前には、自動で「水族館」がつきます。</p>' +
+          '<p class="name-ideas__title">迷ったら、ここから選んでもOK</p>' +
+          '<div class="name-ideas">' + ideas.map(function (n) { return '<button type="button" class="name-idea">' + esc(n) + "</button>"; }).join("") + "</div>" +
+        "</div>" +
+        '<button class="btn btn--primary" id="nameOk" type="button" style="margin-top:18px">この名前で開館準備スタート！</button>' +
+        '<button class="link-btn" id="nameAuto" type="button" style="display:block;margin:8px auto 0">名前はおまかせにする（選択に合わせて自動で決まります）</button>' +
+        '<button class="link-btn" id="nameBack" type="button" style="display:block;margin:0 auto">タイトルに戻る</button>' +
+      "</section>"
+    );
+    var input = $("nameInput");
+    function update() {
+      var n = M.story.cleanName(input.value);
+      $("namePreview").textContent = n || "（おまかせ）";
+      $("nameOk").disabled = !n;
+      $("nameOk").style.opacity = n ? "" : ".5";
+    }
+    input.addEventListener("input", update);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); input.blur(); } });
+    app.querySelectorAll(".name-idea").forEach(function (b) {
+      b.addEventListener("click", function () { S.play("tap"); input.value = b.textContent; update(); });
+    });
+    function begin(name) {
+      S.play("bubble");
+      aqName = name;
+      history = [];
+      hudShown = null;
+      save();
+      goRound();
+    }
+    $("nameOk").addEventListener("click", function () { var n = M.story.cleanName(input.value); if (n) begin(n); });
+    $("nameAuto").addEventListener("click", function () { begin(""); });
+    $("nameBack").addEventListener("click", function () { S.play("tap"); renderTitle(); });
+    update();
   }
 
   /* ───── ラウンド進行 ───── */
@@ -237,7 +289,7 @@
         "</button>";
     }).join("");
     show(
-      '<div class="q-head"><span class="q-round">QUESTION ' + q.round + "</span>" +
+      '<div class="q-head">' + (aqName ? '<p class="q-owner">' + esc(aqName) + " 館長の決断</p>" : "") + '<span class="q-round">QUESTION ' + q.round + "</span>" +
       '<h2 class="q-title">' + esc(q.title) + "</h2>" +
       '<p class="q-desc">' + esc(q.description) + "</p></div>" +
       '<p class="q-ask">あなたならどうする？</p>' +
@@ -310,11 +362,11 @@
   function finish() {
     topbar(false);
     var result = E.simulate(history);
-    var template = M.story.buildStory(result);
+    var template = M.story.buildStory(result, { name: aqName });
     var curtain = $("curtain"), text = $("curtainText");
     curtain.hidden = false;
     var lines = ["あなたの水族館の10年間を振り返っています……", "10年間の経営結果をまとめています……"];
-    var aiP = M.ai.requestStory(result, template);
+    var aiP = M.ai.requestStory(result, template, aqName);
     var seq = Promise.resolve();
     lines.forEach(function (l) {
       seq = seq.then(function () {
@@ -529,11 +581,11 @@
       history = [];
       save();
       if (location.search) window.history.replaceState(null, "", location.pathname);
-      renderTitle();
+      if (shared) renderTitle(); else renderNameScreen(aqName);
     });
     if (shared) return;
 
-    var url = M.share.shareUrl(result.history);
+    var url = M.share.shareUrl(result.history, story.customName);
     var text = M.share.shareText(story);
     $("xBtn").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url);
     $("lineBtn").href = "https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text);
@@ -628,7 +680,7 @@
     if (shared && shared.length === 10) {
       // 共有リンク：AIは呼ばず、テンプレートで同じ結果を再現する
       var result = E.simulate(shared);
-      var story = M.story.buildStory(result);
+      var story = M.story.buildStory(result, { name: new URLSearchParams(location.search).get("n") || "" });
       renderResult(result, story, true);
       return;
     }

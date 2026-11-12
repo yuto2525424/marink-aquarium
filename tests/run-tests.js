@@ -123,6 +123,22 @@ for (let n = 0; n < total; n += 19) {
   });
 }
 
+// 3c. プレイヤーが決めた水族館名
+const C = M.story.cleanName;
+assert(C("まりんく") === "まりんく水族館", "名前に「水族館」が自動でつく");
+assert(C("しおかぜ水族館") === "しおかぜ水族館", "「水族館」が二重につかない");
+assert(C("<script>x</script>") === "scriptx/script水族館", "危険な記号を取り除く");
+assert(Array.from(C("あ".repeat(40))).length <= M.story.NAME_MAX + 3, "名前の長さ制限");
+assert(C("   ") === "", "空白だけの名前はおまかせ扱い");
+for (const h of ["AAAAAAACAA", "CCCCCCCCCC", "BBBBBBBBBB"]) {
+  const r = E.simulate(h);
+  const st = M.story.buildStory(r, { name: "ゆうと" });
+  const text = st.chapters.map((c) => c.text).join("") + st.finalSceneDescription + st.tagline;
+  assert(st.aquariumName === "ゆうと水族館" && st.customName === "ゆうと水族館", `${h} 名前が反映されない`);
+  assert(text.includes("ゆうと水族館") && !text.includes(M.story.autoName(r)), `${h} 物語に自分の名前が使われていない`);
+  assert(!/undefined|null|NaN/.test(text), `${h} 名前つき物語に未定義値`);
+}
+
 // 4. 決定性: 同じ履歴は同じ結果
 const a = E.simulate("ABCABCABCA"), b = E.simulate("ABCABCABCA");
 assert(JSON.stringify(a.finalStats) === JSON.stringify(b.finalStats) && a.endingId === b.endingId, "同じ履歴で結果が変わる");

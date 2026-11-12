@@ -43,7 +43,8 @@
       });
     return {
       source: "ai",
-      aquariumName: data.aquariumName,
+      aquariumName: template.customName || data.aquariumName, // プレイヤーが決めた名前を優先
+      customName: template.customName,
       endingTitle: data.endingTitle,
       endingCategory: result.ending.name, // カテゴリーはゲーム側で確定。AIには変えさせない
       tagline: data.tagline,
@@ -59,14 +60,15 @@
     };
   }
 
-  function cacheKey(h) { return "marink-ai-" + M.DATA.version + "-" + h; }
+  function cacheKey(h, name) { return "marink-ai-" + M.DATA.version + "-" + h + "-" + (name || ""); }
 
   /* 物語を1回だけ取得。失敗・タイムアウト時は null（テンプレートに切り替え） */
-  function requestStory(result, template) {
+  function requestStory(result, template, name) {
+    name = M.story.cleanName(name || "");
     if (!enabled()) return Promise.resolve({ story: null, reason: "disabled" });
     var h = result.history.join("");
     try {
-      var cached = sessionStorage.getItem(cacheKey(h));
+      var cached = sessionStorage.getItem(cacheKey(h, name));
       if (cached) {
         var v = validate(JSON.parse(cached), result);
         if (v) return Promise.resolve({ story: toStory(v, result, template), reason: "cache" });
@@ -78,7 +80,7 @@
     return fetch(CFG.aiEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ version: M.DATA.version, history: h }),
+      body: JSON.stringify({ version: M.DATA.version, history: h, name: name }),
       signal: ctrl ? ctrl.signal : undefined,
     })
       .then(function (res) {
@@ -88,7 +90,7 @@
       .then(function (json) {
         var v = validate(json, result);
         if (!v) throw new Error("invalid");
-        try { sessionStorage.setItem(cacheKey(h), JSON.stringify(v)); } catch (e) {}
+        try { sessionStorage.setItem(cacheKey(h, name), JSON.stringify(v)); } catch (e) {}
         return { story: toStory(v, result, template), reason: "ok" };
       })
       .catch(function (err) {

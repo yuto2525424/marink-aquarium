@@ -134,9 +134,9 @@
     });
   }
 
-  function shareUrl(history) {
+  function shareUrl(history, name) {
     var base = location.href.split("?")[0].split("#")[0];
-    return base + "?r=" + history.join("");
+    return base + "?r=" + history.join("") + (name ? "&n=" + encodeURIComponent(name) : "");
   }
 
   function shareText(story) {

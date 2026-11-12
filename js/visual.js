@@ -142,11 +142,14 @@
     // 看板
     var sy = gy - H - (cfg.main === "small" ? 34 : cfg.main === "deep" ? H * 0.3 + 2 : 26);
     if (cfg.main === "deep") sy = gy - H * 0.55 - 4;
-    var sw = 96;
+    // 看板の幅と文字の大きさは名前の長さに合わせる
+    var len = opts.signText ? Array.from(String(opts.signText)).length : 10;
+    var fsz = len <= 12 ? 7.5 : len <= 16 ? 6.6 : 5.8;
+    var sw = Math.max(96, Math.min(190, len * fsz + 22));
     out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="' + (dark ? "#9aa1ae" : "#fffaf0") + '" stroke="' + (dark ? "#7c8494" : "#f2a79c") + '" stroke-width="1.5"/>';
     if (!dark) out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="#fff6c9" opacity=".35"/>';
     if (opts.signText) {
-      out += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="7.5" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
+      out += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="' + fsz + '" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
     }
     return { svg: out, W: W, H: H, x0: x0 };
   }

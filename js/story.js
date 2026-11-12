@@ -237,12 +237,25 @@
   }
 
   /* 公開関数：結果オブジェクトからテンプレート物語を作る */
-  function buildStory(r) {
-    var name = aquariumName(r);
+  /* プレイヤーが決めた水族館名を整える（記号・改行の除去、長さ制限、「水族館」の自動補完） */
+  var NAME_MAX = 16;
+  var NAME_SUFFIX = /(水族館|館|アクアリウム|アクア|aquarium|パーク|ワールド)$/i;
+  function cleanName(input) {
+    var s = String(input == null ? "" : input).replace(/[\u0000-\u001f\u007f<>"'`\\]/g, "").replace(/\s+/g, " ").trim();
+    s = Array.from(s).slice(0, NAME_MAX).join("").trim();
+    if (!s) return "";
+    if (!NAME_SUFFIX.test(s)) s += "水族館";
+    return s;
+  }
+
+  function buildStory(r, opts) {
+    var custom = cleanName(opts && opts.name);
+    var name = custom || aquariumName(r);
     var title = endingTitle(r);
     return {
       source: "template",
       aquariumName: name,
+      customName: custom,
       endingTitle: title,
       endingCategory: r.ending.name,
       tagline: name + "は「" + title + "」に！",
@@ -375,5 +388,5 @@
     });
   }
 
-  M.story = { buildStory: buildStory, fmtDelta: fmtDelta, money: money, visitors: visitors, fmtVal: fmtVal, mainShort: mainShort, report: report, overall: overall, fundTrend: fundTrend, whatIf: whatIf, gradeIndex: gradeIndex };
+  M.story = { buildStory: buildStory, cleanName: cleanName, NAME_MAX: NAME_MAX, autoName: aquariumName, fmtDelta: fmtDelta, money: money, visitors: visitors, fmtVal: fmtVal, mainShort: mainShort, report: report, overall: overall, fundTrend: fundTrend, whatIf: whatIf, gradeIndex: gradeIndex };
 })(typeof window !== "undefined" ? window : globalThis);

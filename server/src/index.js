@@ -47,7 +47,7 @@ const SYSTEM = `あなたはWebゲーム「MARINK AQUARIUM ― 運命の館長�
 バッドエンドは暗くなりすぎず余韻を残し、ハッピーエンドは選択が報われる展開に。
 
 ## 出力（すべて日本語・文字数は厳守）
-- aquariumName: 選択内容に合った、自然でかわいらしい水族館名（24文字以内）
+- aquariumName: 選択内容に合った、自然でかわいらしい水族館名（24文字以内）。facts.fixedName がある場合は、その文字列をそのまま使い、物語の中でもその名前で呼ぶこと
 - endingTitle: 運命を象徴するタイトル。『』は付けない（30文字以内）
 - tagline: SNS向けの短い一文（60文字以内）
 - shortSummary: 結果の短い説明（120文字以内）
@@ -59,6 +59,7 @@ const SYSTEM = `あなたはWebゲーム「MARINK AQUARIUM ― 運命の館長�
 
 function buildFacts(r, template) {
   return {
+    fixedName: template.customName || null,
     endingCategory: r.ending.name,
     endingSummary: r.ending.summary,
     aquarium: r.aquarium,
@@ -149,8 +150,10 @@ export async function handle(request, env, deps = {}) {
 
   // サーバーで結果を再計算（クライアントの数値は受け取らない）
   const result = M.engine.simulate(history);
-  const template = M.story.buildStory(result);
-  const cacheKey = `story:${M.DATA.version}:${history.join("")}`;
+  // プレイヤーが決めた水族館名（サーバー側でも整形・長さ制限）
+  const name = M.story.cleanName(typeof body.name === "string" ? body.name : "");
+  const template = M.story.buildStory(result, { name });
+  const cacheKey = `story:${M.DATA.version}:${history.join("")}:${encodeURIComponent(name)}`;
 
   if (env.RATE_KV) {
     const cached = await env.RATE_KV.get(cacheKey);
@@ -184,7 +187,7 @@ export async function handle(request, env, deps = {}) {
   const problem = validateStory(out, result);
   if (problem) return json({ error: "invalid story", reason: problem }, 502, cors);
 
-  const payload = { endingId: result.endingId, ...out };
+  const payload = { endingId: result.endingId, ...out, ...(name ? { aquariumName: name } : {}) };
   if (env.RATE_KV) await env.RATE_KV.put(cacheKey, JSON.stringify(payload), { expirationTtl: 60 * 60 * 24 * 30 });
   return json(payload, 200, cors);
 }
