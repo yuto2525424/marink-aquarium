@@ -245,5 +245,99 @@
     };
   }
 
-  M.story = { buildStory: buildStory, fmtDelta: fmtDelta, mainShort: mainShort };
+  /* ───── 経営レポート：パラメーターごとの評価 ───── */
+  var COMMENTS = {
+    fund: ["赤字…。借金や出費が重くのしかかった", "ぎりぎり黒字。大きな出費はできない", "なんとか黒字。無駄づかいは禁物", "しっかり黒字。安定した経営", "お金の心配はなし！ 次の挑戦も余裕"],
+    pop: ["お客さんはほとんど来なかった…", "来館者は少なめ。宣伝が課題", "ほどよくにぎわっている", "週末は行列ができる人気館", "全国から人が押し寄せる大人気"],
+    welfare: ["生き物たちの暮らしが心配な状態", "ところどころ手が回っていない", "大きな問題はなく安定", "生き物たちはのびのび元気", "生き物たちは最高の環境で暮らしている"],
+    staff: ["スタッフが足りず限界寸前", "人手不足ぎみで余裕がない", "なんとか回っている", "頼れるスタッフがそろっている", "最強のチームワーク"],
+    research: ["研究にはほとんど手が回らなかった", "研究はほどほど", "教育プログラムも充実", "学会でも話題の研究力", "世界が注目する研究成果"],
+    trust: ["信頼を取り戻すのが課題", "評判にはやや不安あり", "評判はまずまず", "多くの人に信頼されている", "地域の誇りと呼ばれる存在"],
+  };
+  var GRADES = ["D", "C", "B", "A", "S"];
+
+  function gradeIndex(key, v) {
+    var th = key === "fund" ? [0, 20, 45, 80] : [40, 55, 70, 85];
+    var i = 0;
+    while (i < th.length && v >= th[i]) i++;
+    return i;
+  }
+
+  function report(r) {
+    return E.STAT_KEYS.map(function (k) {
+      var v = r.finalStats[k];
+      var gi = gradeIndex(k, v);
+      return { key: k, label: D.statLabels[k], value: v, start: D.initialStats[k], diff: v - D.initialStats[k], grade: GRADES[gi], gradeIndex: gi, comment: COMMENTS[k][gi] };
+    });
+  }
+
+  /* 資金の推移（開館前 → 各問のあと → 10年後の決算） */
+  function fundTrend(r) {
+    var pts = [{ label: "スタート", value: D.initialStats.fund }];
+    r.steps.forEach(function (s) { pts.push({ label: "第" + s.round + "問", value: s.statsAfter.fund }); });
+    pts.push({ label: "決算", value: r.finalStats.fund });
+    return pts;
+  }
+
+  /* ───── もしもの未来：1問だけ別の選択をしたら？ ─────
+   * ほかの選択はそのままにして、実際に計算し直した結果だけを表示する */
+  var TIER = { legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
+
+  function whatIf(r) {
+    var base = r.history;
+    var curTier = TIER[r.endingId];
+    var alts = [];
+    for (var i = 0; i < base.length; i++) {
+      E.CHOICES.forEach(function (c) {
+        if (c === base[i]) return;
+        var h = base.slice();
+        h[i] = c;
+        var alt = E.simulate(h);
+        // 選んでいたはずの選択肢の名前（その時点の状況で表示されたもの）
+        var label = alt.steps[i].label;
+        var biggest = null;
+        E.STAT_KEYS.forEach(function (k) {
+          var d = alt.finalStats[k] - r.finalStats[k];
+          if (!biggest || Math.abs(d) > Math.abs(biggest.diff)) biggest = { key: k, label: D.statLabels[k], from: r.finalStats[k], to: alt.finalStats[k], diff: d };
+        });
+        alts.push({
+          round: i + 1,
+          title: r.steps[i].title,
+          picked: r.steps[i].label,
+          label: label,
+          endingId: alt.endingId,
+          endingName: alt.ending.name,
+          tierDiff: TIER[alt.endingId] - curTier,
+          biggest: biggest,
+        });
+      });
+    }
+    var changed = alts.filter(function (a) { return a.endingId !== r.endingId; });
+    var out = [];
+    var better = changed.filter(function (a) { return a.tierDiff > 0; }).sort(function (a, b) { return b.tierDiff - a.tierDiff || a.round - b.round; });
+    var worse = changed.filter(function (a) { return a.tierDiff < 0; }).sort(function (a, b) { return a.tierDiff - b.tierDiff || a.round - b.round; });
+    var other = changed.filter(function (a) { return a.tierDiff === 0; });
+    if (better[0]) out.push(Object.assign({ kind: "better" }, better[0]));
+    var second = better.filter(function (a) { return a.round !== (out[0] && out[0].round) && a.endingId !== (out[0] && out[0].endingId); })[0];
+    if (curTier <= 5 && second) out.push(Object.assign({ kind: "better" }, second));
+    else if (worse[0]) out.push(Object.assign({ kind: "worse" }, worse[0]));
+    else if (other[0]) out.push(Object.assign({ kind: "other" }, other[0]));
+    if (!out.length) {
+      // どの1問を変えても結末が同じ場合は、数値がいちばん変わる選択を紹介
+      alts.sort(function (a, b) { return Math.abs(b.biggest.diff) - Math.abs(a.biggest.diff); });
+      if (alts[0]) out.push(Object.assign({ kind: "same" }, alts[0]));
+    }
+    return out.slice(0, 2).map(function (a) {
+      var b = a.biggest;
+      var change = b && b.diff ? b.label + " " + b.from + " → " + b.to : "";
+      var text;
+      if (a.kind === "better") text = "あの時こうしていれば、未来は変わったかも…。「" + a.endingName + "」にたどり着いていたかもしれません。";
+      else if (a.kind === "worse") text = "じつはここが分かれ道。もしこちらを選んでいたら、「" + a.endingName + "」になっていたかも…。あぶなかった！";
+      else if (a.kind === "other") text = "選んでいたら、「" + a.endingName + "」という別の未来が待っていたかもしれません。";
+      else text = "どの1問を変えても結末は同じでした。それでも、この選択がいちばん数字を動かしていたはず。";
+      return { kind: a.kind, round: a.round, title: a.title, picked: a.picked, label: a.label, endingName: a.endingName, text: text, change: change };
+    });
+  }
+
+  M.story = { buildStory: buildStory, fmtDelta: fmtDelta, mainShort: mainShort, report: report, fundTrend: fundTrend, whatIf: whatIf, gradeIndex: gradeIndex };
 })(typeof window !== "undefined" ? window : globalThis);

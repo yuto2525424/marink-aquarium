@@ -100,6 +100,29 @@ for (let n = 0; n < total; n++) {
 }
 assert(ids.size === total, "結果IDが重複している");
 
+// 3b. 「もしもの未来」と経営レポートの検証（約3,000通りを抜き取り）
+for (let n = 0; n < total; n += 19) {
+  let x = n;
+  const h = [];
+  for (let i = 0; i < 10; i++) { h.unshift("ABC"[x % 3]); x = Math.floor(x / 3); }
+  const r = E.simulate(h);
+  const rep = M.story.report(r);
+  assert(rep.length === 6 && rep.every((s) => "SABCD".includes(s.grade) && s.comment), `${h.join("")} 経営レポートが不完全`);
+  const trend = M.story.fundTrend(r);
+  assert(trend.length === 12 && trend[11].value === r.finalStats.fund, `${h.join("")} 資金推移が合わない`);
+  const wi = M.story.whatIf(r);
+  assert(wi.length >= 1 && wi.length <= 2, `${h.join("")} もしもの未来の件数`);
+  wi.forEach((w) => {
+    // 表示した「もしも」が本当にその結末になるかを再計算で確認
+    const hh = h.slice();
+    const alt = ["A", "B", "C"].filter((c) => c !== h[w.round - 1]).map((c) => { hh[w.round - 1] = c; return E.simulate(hh.slice()); })
+      .find((a) => a.steps[w.round - 1].label === w.label);
+    assert(alt, `${h.join("")} もしもの選択肢が存在しない`);
+    if (alt && w.kind !== "same") assert(alt.ending.name === w.endingName && alt.endingId !== r.endingId, `${h.join("")} もしもの結末が計算と違う`);
+    if (alt && w.kind === "same") assert(alt.endingId === r.endingId, `${h.join("")} 結末が同じはずなのに違う`);
+  });
+}
+
 // 4. 決定性: 同じ履歴は同じ結果
 const a = E.simulate("ABCABCABCA"), b = E.simulate("ABCABCABCA");
 assert(JSON.stringify(a.finalStats) === JSON.stringify(b.finalStats) && a.endingId === b.endingId, "同じ履歴で結果が変わる");

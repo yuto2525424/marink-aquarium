@@ -1,0 +1,3 @@
+# ローカルで試すときは、このファイルを .dev.vars という名前でコピーして使います
+# .dev.vars は絶対にGitHubへアップロードしないでください
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxx

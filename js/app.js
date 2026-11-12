@@ -70,6 +70,28 @@
     }
   }
 
+  /* ───── プレイ中のパラメーター表示 ───── */
+  var HUD_LABEL = { fund: "資金", pop: "集客", welfare: "飼育", staff: "スタッフ", research: "研究", trust: "信頼" };
+  var hudShown = null;
+  function hud(stats, animate) {
+    var prev = hudShown;
+    hudShown = Object.assign({}, stats);
+    $("hud").innerHTML = E.STAT_KEYS.map(function (k) {
+      var v = stats[k];
+      var pct = k === "fund" ? Math.max(0, Math.min(100, (v / 150) * 100)) : v;
+      var low = k === "fund" ? v < 20 : v < 40;
+      var d = animate && prev ? v - prev[k] : 0;
+      var pop = d ? '<span class="hud__pop ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "+" : "") + d + "</span>" : "";
+      var debt = k === "fund" && stats.debt > 0 ? '<span class="hud__debt-badge">借入' + stats.debt + "</span>" : "";
+      return '<li class="hud__item' + (d ? (d > 0 ? " flash-up" : " flash-down") : "") + '" title="' + D.statLabels[k] + '">' +
+        '<span class="hud__label">' + HUD_LABEL[k] + '</span><span class="hud__val' + (v < 0 ? " neg" : "") + '">' + v + "</span>" +
+        '<span class="hud__bar"><i class="' + (low ? "low" : "") + '" style="width:' + pct + '%"></i></span>' + pop + debt + "</li>";
+    }).join("");
+    if (animate) setTimeout(function () {
+      $("hud").querySelectorAll(".flash-up, .flash-down").forEach(function (el) { el.classList.remove("flash-up", "flash-down"); });
+    }, 700);
+  }
+
   /* ───── トップバー ───── */
   function topbar(visible, round) {
     var tb = $("topbar");
@@ -111,12 +133,14 @@
     $("startBtn").addEventListener("click", function () {
       S.play("bubble");
       history = [];
+      hudShown = null;
       save();
       goRound();
     });
     if ($("resumeBtn")) $("resumeBtn").addEventListener("click", function () {
       S.play("bubble");
       history = saved;
+      hudShown = null;
       goRound();
     });
   }
@@ -128,6 +152,7 @@
     var sim = E.simulate(history);
     var next = sim.next;
     topbar(true, next.round);
+    hud(sim.stats, true);
     if (next.events.length) renderEvents(next);
     else renderQuestion(next.question);
   }
@@ -193,6 +218,7 @@
       var sim = E.simulate(history);
       var step = sim.steps[sim.steps.length - 1];
       $("progressFill").style.width = (history.length / 10) * 100 + "%";
+      hud(step.statsAfter, true);
       openSheet(step);
     }, 380);
   }
@@ -281,12 +307,69 @@
       '<polygon points="' + poly + '" fill="rgba(124,192,207,.45)" stroke="#4fa6b8" stroke-width="2.5" stroke-linejoin="round"/>' + labels + "</svg>";
   }
 
-  function bars(fs) {
-    return '<ul class="bars">' + E.STAT_KEYS.map(function (k) {
-      var v = fs[k];
-      var pct = k === "fund" ? Math.max(3, Math.min(100, (v + 50) / 2)) : Math.max(3, v);
-      return '<li class="bar"><span>' + D.statLabels[k] + '</span><span class="bar__track"><span class="bar__fill' + (k === "fund" && v < 0 ? " neg" : "") + '" data-w="' + pct + '"></span></span><span class="bar__val">' + v + "</span></li>";
+  /* パラメーターごとの評価カード（S〜D・スタートとの比較・ひとこと） */
+  function statCards(result) {
+    return '<ul class="stat-cards">' + M.story.report(result).map(function (s) {
+      var pct = s.key === "fund" ? Math.max(3, Math.min(100, (s.value + 50) / 2)) : Math.max(3, s.value);
+      var diff = (s.diff > 0 ? "+" : "") + s.diff;
+      var unit = s.key === "fund" ? (s.value >= 0 ? "黒字" : "赤字") : "";
+      return '<li class="stat-card g-' + s.grade + '">' +
+        '<span class="stat-card__grade" aria-label="評価' + s.grade + '">' + s.grade + "</span>" +
+        '<div class="stat-card__body"><div class="stat-card__head"><b>' + s.label + "</b>" +
+        '<span class="stat-card__val' + (s.value < 0 ? " neg" : "") + '">' + s.value + (unit ? '<small>' + unit + "</small>" : "") + "</span></div>" +
+        '<span class="bar__track"><span class="bar__fill' + (s.gradeIndex <= 1 ? " neg" : "") + '" data-w="' + pct + '"></span></span>' +
+        '<div class="stat-card__meta"><span>スタート ' + s.start + " → " + s.value + '（<span class="' + (s.diff >= 0 ? "pos" : "neg") + '">' + diff + "</span>）</span></div>" +
+        '<p class="stat-card__comment">' + esc(s.comment) + "</p></div></li>";
     }).join("") + "</ul>";
+  }
+
+  /* 資金の推移グラフ */
+  function fundChart(result) {
+    var pts = M.story.fundTrend(result);
+    var W = 320, H = 170, L = 34, R = 10, T = 14, B = 26;
+    var vals = pts.map(function (p) { return p.value; });
+    var max = Math.max(110, Math.max.apply(null, vals) + 10), min = Math.min(-10, Math.min.apply(null, vals) - 10);
+    var x = function (i) { return L + (i / (pts.length - 1)) * (W - L - R); };
+    var y = function (v) { return T + ((max - v) / (max - min)) * (H - T - B); };
+    var line = pts.map(function (p, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.value).toFixed(1); }).join(" ");
+    var area = line + " L" + x(pts.length - 1) + " " + y(0) + " L" + x(0) + " " + y(0) + " Z";
+    var dots = pts.map(function (p, i) {
+      return '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p.value).toFixed(1) + '" r="' + (i === pts.length - 1 ? 5 : 3.2) + '" fill="' + (p.value < 0 ? "#d9786e" : "#4fa6b8") + '" stroke="#fff" stroke-width="1.5"/>';
+    }).join("");
+    var xl = pts.map(function (p, i) {
+      var t = i === 0 ? "開館前" : i === pts.length - 1 ? "決算" : String(i);
+      return '<text x="' + x(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9.5" text-anchor="middle" fill="#5b7290">' + t + "</text>";
+    }).join("");
+    var last = pts[pts.length - 1];
+    return '<svg class="fund-chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="資金余力の推移グラフ">' +
+      '<defs><clipPath id="negClip"><rect x="0" y="' + y(0) + '" width="' + W + '" height="' + H + '"/></clipPath></defs>' +
+      '<rect x="' + L + '" y="' + y(0) + '" width="' + (W - L - R) + '" height="' + Math.max(0, y(min) - y(0)) + '" fill="#fbecea" opacity=".7"/>' +
+      '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="#d9786e" stroke-dasharray="4 3" stroke-width="1"/>' +
+      '<text x="' + (L - 4) + '" y="' + (y(0) + 3) + '" font-size="9.5" text-anchor="end" fill="#d9786e">0</text>' +
+      '<text x="' + (L - 4) + '" y="' + (y(100) + 3) + '" font-size="9.5" text-anchor="end" fill="#5b7290">100</text>' +
+      '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(100) + '" y2="' + y(100) + '" stroke="#e3ebef" stroke-width="1"/>' +
+      '<path d="' + area + '" fill="rgba(124,192,207,.18)"/>' +
+      '<path d="' + line + '" fill="none" stroke="#4fa6b8" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="' + line + '" fill="none" stroke="#d9786e" stroke-width="2.5" stroke-linejoin="round" clip-path="url(#negClip)"/>' +
+      dots + xl +
+      '<text x="' + x(pts.length - 1).toFixed(1) + '" y="' + (y(last.value) - 9).toFixed(1) + '" font-size="11" font-weight="700" text-anchor="end" fill="' + (last.value < 0 ? "#d9786e" : "#2f4a6b") + '">' + last.value + "</text>" +
+      "</svg>";
+  }
+
+  /* もしもの未来 */
+  function whatIfHtml(result) {
+    var list = M.story.whatIf(result);
+    if (!list.length) return "";
+    return '<section class="card whatif"><h2 class="section-title">もしもの未来</h2>' +
+      '<p class="small-note" style="margin:0 0 6px">ほかの選択はそのままで、1問だけ別の答えを選んでいたら…？ 実際に計算し直した結果です。</p>' +
+      list.map(function (w) {
+        return '<div class="whatif__item kind-' + w.kind + '">' +
+          '<div class="whatif__round">第' + w.round + "問　" + esc(w.title) + "</div>" +
+          '<div class="whatif__swap"><span class="whatif__you">あなた：' + esc(w.picked) + '</span><span class="whatif__arrow" aria-hidden="true">↓</span><span class="whatif__alt">もし：' + esc(w.label) + "</span></div>" +
+          '<p class="whatif__text">' + esc(w.text) + "</p>" +
+          (w.change ? '<p class="whatif__change">' + esc(w.change) + "</p>" : "") +
+          "</div>";
+      }).join("") + "</section>";
   }
 
   function renderResult(result, story, shared) {
@@ -323,11 +406,14 @@
       "</section>" +
       '<section class="card" style="margin-top:18px"><h2 class="section-title">水族館の特徴</h2><ul class="feature-list">' +
         story.features.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul></section>" +
-      '<section class="card"><h2 class="section-title">10年間の経営結果</h2><div class="stats-wrap">' + radar(result.finalStats) + bars(result.finalStats) + "</div>" +
-        '<ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + result.finalStats.fund + "</span></li></ul>" +
-        '<p class="small-note">※ 数値はゲーム内だけの指標です。現実の水族館の評価ではありません。</p></section>' +
+      '<section class="card"><h2 class="section-title">10年間の経営レポート</h2>' + radar(result.finalStats) + statCards(result) +
+        '<p class="small-note">評価はS・A・B・C・Dの5段階。※ 数値はゲーム内だけの指標で、現実の水族館の評価ではありません。</p></section>' +
+      '<section class="card"><h2 class="section-title">資金余力の推移</h2>' + fundChart(result) +
+        '<p class="small-note" style="margin-top:4px">数字は各問を選んだあとの資金余力。赤いゾーンは赤字です。</p>' +
+        '<h3 class="sub-title">10年後の決算</h3><ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + result.finalStats.fund + "</span></li></ul></section>" +
       '<section class="card"><h2 class="section-title">10年間の物語</h2>' + chapters + "</section>" +
       '<section class="card"><h2 class="section-title">運命を変えた3つの選択</h2>' + decisions + "</section>" +
+      whatIfHtml(result) +
       '<section class="card"><h2 class="section-title">10年後の水族館</h2><p style="margin:0">' + esc(story.finalSceneDescription) + "</p></section>" +
       '<section class="card"><details class="record"><summary>すべての選択の記録</summary><ol>' + record + "</ol></details></section>" +
       (shared ? "" :
@@ -445,6 +531,7 @@
       if (busy || !history.length || !$("sheet").hidden) return;
       S.play("tap");
       history.pop();
+      hudShown = null;
       save();
       goRound();
     });
