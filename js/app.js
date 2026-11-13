@@ -153,6 +153,25 @@
   }
 
   /* ───── タイトル画面 ───── */
+  /* 「ホーム画面に追加」の案内（すでにアプリとして開いているときは出さない） */
+  function installHtml() {
+    var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+    if (standalone) return "";
+    var ua = navigator.userAgent || "";
+    var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var android = /Android/.test(ua);
+    var steps = ios
+      ? "<li>画面の下（または上）にある <b>共有ボタン</b>（□から↑が出ているマーク）を押す</li><li>メニューの中の <b>「ホーム画面に追加」</b> を押す（見つからないときはメニューを下にスクロール）</li><li>右上の <b>「追加」</b> を押す</li>"
+      : android
+        ? "<li>右上の <b>︙（メニュー）</b> を押す</li><li><b>「ホーム画面に追加」</b> または <b>「アプリをインストール」</b> を押す</li><li><b>「追加」</b> を押す</li>"
+        : "<li>スマホでこのページを開く</li><li>iPhoneなら共有ボタン →「ホーム画面に追加」、Androidならメニュー →「ホーム画面に追加」</li>";
+    return '<section class="card install-card"><h2 class="section-title">アプリのように遊ぶには</h2>' +
+      '<div class="install-card__head"><img src="assets/apple-touch-icon.png" alt="" width="56" height="56"><p>ホーム画面にアイコンを置くと、アプリのように<b>全画面</b>で遊べます。一度開けば<b>電波がなくても</b>遊べます。無料です。</p></div>' +
+      '<ol class="install-card__steps">' + steps + "</ol>" +
+      (ios ? '<p class="small-note">※ Safari で開いてください。LINEやInstagramの中で開いた場合は、右下や右上のメニューから「Safariで開く」を選んでから追加します。</p>' : "") +
+      "</section>";
+  }
+
   function renderTitle() {
     topbar(false);
     var saved = load();
@@ -179,6 +198,7 @@
         resume +
         guideHtml() +
         '<button class="btn btn--primary" id="startBtn2" type="button" style="margin-top:18px">さっそく水族館をつくる！</button>' +
+        installHtml() +
         '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       "</section>"
     );

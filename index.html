@@ -11,6 +11,13 @@
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <!-- ホーム画面に追加したとき、アプリのように全画面で開く -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MARINK水族館">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -66,5 +73,11 @@
   <script src="js/ai.js"></script>
   <script src="js/share.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // オフライン対応（対応しているブラウザだけ。失敗してもゲームはそのまま遊べる）
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+    }
+  </script>
 </body>
 </html>

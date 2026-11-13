@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe8f2"/><stop offset=".55" stop-color="#6fc0d3"/><stop offset="1" stop-color="#3a8ea8"/></linearGradient>
+    <radialGradient id="light" cx=".3" cy="0" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#light)"/>
+  <g fill="#fff" opacity=".18"><path d="M60 0 L140 0 L60 512 L-20 512 Z"/><path d="M230 0 L280 0 L210 512 L160 512 Z"/></g>
+  <!-- ジンベエザメ -->
+  <g transform="translate(256 290)">
+    <path d="M-190 0 C-150 -78 60 -96 150 -26 L230 -92 L210 0 L230 92 L150 26 C60 96 -150 78 -190 0 Z" fill="#2f5f8a"/>
+    <path d="M-40 -70 L0 -128 L30 -64 Z" fill="#2f5f8a"/>
+    <path d="M-182 8 C-130 56 40 68 140 22 C60 60 -120 66 -182 8 Z" fill="#e9f4f7"/>
+    <g fill="#e9f4f7" opacity=".9">
+      <circle cx="-100" cy="-30" r="7"/><circle cx="-70" cy="-48" r="6"/><circle cx="-40" cy="-22" r="7"/><circle cx="-10" cy="-50" r="6"/><circle cx="20" cy="-26" r="7"/><circle cx="50" cy="-46" r="6"/><circle cx="80" cy="-20" r="6"/><circle cx="110" cy="-34" r="5"/><circle cx="-130" cy="-8" r="5"/><circle cx="-60" cy="0" r="5"/><circle cx="0" cy="-2" r="5"/><circle cx="60" cy="2" r="5"/>
+    </g>
+    <circle cx="-150" cy="-12" r="9" fill="#14304d"/>
+    <path d="M-185 12 Q-165 20 -140 16" stroke="#14304d" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+  <g fill="#fff"><circle cx="110" cy="130" r="16" opacity=".85"/><circle cx="150" cy="80" r="10" opacity=".75"/><circle cx="92" cy="60" r="7" opacity=".7"/></g>
+  <path d="M0 450 Q64 430 128 450 T256 450 T384 450 T512 450 L512 512 L0 512 Z" fill="#f4e6c8" opacity=".9"/>
+</svg>
