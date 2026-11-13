@@ -128,6 +128,25 @@
       onehit: "お客さんのお目当ては、ほぼジンベエザメだけ。大水槽の前は大混雑なのに、ほかの展示はがらんとしている。人気はあるけれど、生き物の世話や研究にまで手が回らず、館長は「ほかの子たちも見てほしい」とため息をつく。",
       labonly: "研究に夢中になるうちに、" + name + "は来館者よりも研究者のほうが多い場所になった。論文は次々と発表されるのに、入口はいつも静か。館長は白衣のまま「今日も実験日和だ」と満足そうだが、受付のスタッフは少しさみしそうだ。",
       merger: "提携先の大きな水族館グループに助けを求めた結果、" + name + "はグループに吸収されることになった。看板は新しい名前に掛け替えられ、運営方針も変わる。生き物たちはそのまま暮らしていけるけれど、あの日の水族館は、もう別の名前になる。",
+      worldbest: "世界中の水族館と手を取り合い、人気も研究も生き物の暮らしも、すべてを高い水準で守り続けた10年。ついに" + name + "は、海外の専門家たちが選ぶ「世界一の水族館」に選ばれた。授賞式で館長は、スタッフ全員を壇上に呼んだ。",
+      whalecity: "大水槽をゆうゆうと泳ぐジンベエザメは、すっかり町の誇りになった。駅には大きなジンベエザメの像が立ち、お土産屋さんにはジンベエザメのお菓子がずらり。" + name + "は「ジンベエザメの聖地」と呼ばれ、健康管理を担う飼育チームも全国から注目されている。",
+      jellycity: "青く、ピンクに、ゆらゆら光るクラゲたち。" + name + "のクラゲ展示は全国的なブームになり、「クラゲの都」と呼ばれるようになった。館内のカフェではクラゲ型のゼリーが大人気で、写真を撮る人の列が絶えない。",
+      gobystar: "SNSでバズった変顔のハゼは、気づけばテレビCMに出演し、ぬいぐるみは毎週完売。ついには「名誉館長」に就任した。取材に来た記者は、本物の館長に向かって言った。「すみません、ハゼの館長さんはどちらに？」",
+      landmark: "観光地の海沿いに建つ" + name + "は、ついにガイドブックの表紙を飾った。観光バスが次々と到着し、まわりにはカフェやお土産屋さんが増えていく。水族館を中心に、街そのものがにぎやかになった。",
+      satoumi: "静かな海辺の" + name + "には、朝早くから地元の漁師さんが顔を出す。網にかかった珍しい魚を届けてくれたり、海の変化を教えてくれたり。水族館と漁師さんが一緒に海を守る「里海」の取り組みは、全国の手本になった。",
+      treasure: "開館のとき、展示を小さくしたことを悔やんだ日もあった。けれど小さいからこそ、一つひとつの水槽に目が行き届いた。" + name + "は「宝箱みたいな水族館」と呼ばれ、何度も通う常連さんが少しずつ増えていった。",
+      deepbase: "クラゲと深海生物の飼育で積み重ねた技術が、深海の謎を解く鍵になった。" + name + "は研究船と協力して深海の生き物を調べる拠点になり、ここでしか見られない深海生物の展示には、世界中から研究者が訪れる。",
+      hospital: "派手な展示は少ない。けれど" + name + "には、網にからまったウミガメや、迷子になったアザラシが運ばれてくる。元気になった生き物を海へ返す日には、町の人たちが浜辺に集まって見送る。ここは、海の生き物たちの病院だ。",
+      classroom: "お手ごろな入館料のおかげで、" + name + "には放課後の子どもたちが毎日のようにやってくる。夏休みの自由研究はここで決まり、飼育員さんは子どもたちの先生役。10年前に通っていた子が、今年、飼育員として入ってきた。",
+      delayedwin: "開館を延期したあの日、「もう待てない」という声もあった。けれど、じっくり準備したぶん、開館してからの" + name + "は大きくつまずかなかった。「急がばまわれ、だったね」。10年目の打ち上げで、スタッフはそう笑い合った。",
+      rebornsmall: "資金が底をつき、閉館もささやかれた。館長が選んだのは、展示を半分にして身の丈に合った経営に切り替えること。小さくなった" + name + "は、スタッフと生き物の距離が近くなり、「前より好きになった」という声が届くようになった。",
+      thanks: "経営危機のどん底で、手を差しのべてくれたのは仲間の水族館だった。生き物を預かってくれ、ノウハウを教えてくれた。立ち直った" + name + "は今、困っている小さな水族館を助ける側にまわっている。",
+      richempty: name + "の金庫には、10年分の貯金がたっぷり。けれど節約を重ねるうちに展示は地味になり、館内はいつも静かだ。「使い道を考える時間だけは、たっぷりある」。館長は通帳を眺めて苦笑いする。",
+      pricey: "高めの入館料は、思った以上に重かった。「ちょっと高いよね」という声が広まり、家族連れの足は遠のいた。生き物たちは元気なのに、" + name + "の休日の駐車場には、空きが目立つ。",
+      emptyres: "混雑対策のために始めた予約制。ところがブームが落ち着くと、「予約が面倒」とお客さんが離れていった。" + name + "の予約表には、今日も空いた枠が並んでいる。",
+      vetleave: "開館から" + name + "を支えてきたベテランたちが、ひとり、またひとりと引退していった。長年の勘と技術を受け継ぐ若手は、まだ育っていない。最後のベテランは、分厚い飼育ノートを残して去っていった。",
+      burnout: "少数精鋭の専門チームは、どんな難しい飼育もこなしてきた。けれど人数が少ないぶん、ひとりひとりの負担は限界を超えていた。休職する専門家が相次ぎ、" + name + "は大事な研究をいくつも止めることになった。",
+      outsourced: "長期保守契約のおかげで、設備のトラブルは減った。けれど、なんでも業者まかせにしているうちに、" + name + "には水槽の中の生き物をよく知るスタッフが少なくなっていた。「この魚、なんていう名前ですか？」。お客さんの質問に、答えられる人がいない。",
       steady: "大事件も大ブームもない10年だった。けれど、" + name + "は今日も変わらず扉を開ける。" + main + "を眺めながら、のんびり過ごす常連さんたちがいる。",
     };
     return T[r.endingId] + "10年後の資金余力は" + money(s.fund) + "、年間の来館者はおよそ" + visitors(s.pop).slice(1) + "。";
@@ -210,6 +229,25 @@
     legendary: { staff_vet: 6, reliable: 6, expanded_staff: 6 },
     national: { loc_tourist: 8, big_tanks: 8, new_wing: 8 },
     steady: {},
+    worldbest: {alliance:12,staff_vet:6,reliable:6},
+    whalecity: {bigfish_full:15,big_tanks:8},
+    jellycity: {main_deep:15},
+    gobystar: {main_small:15,price_low:6},
+    landmark: {loc_tourist:15},
+    satoumi: {loc_nature:15,reliable:6},
+    treasure: {main_small:10,downsized:12},
+    deepbase: {main_deep:15,staff_elite:8},
+    hospital: {conservation:15,care:6},
+    classroom: {price_low:15,keep:6},
+    delayedwin: {delayed:15},
+    rebornsmall: {shrink_end:15,loan:6},
+    thanks: {rescue:15},
+    richempty: {keep:8,reliable:6},
+    pricey: {price_high:15},
+    emptyres: {reservation:15},
+    vetleave: {staff_vet:15},
+    burnout: {staff_elite:15,extended:6},
+    outsourced: {contract:15},
     true: { conservation: 15, reliable: 10, renewed: 8 },
     secret: { conservation: 15, big_tanks: 10, main_big: 10 },
     badtrue: { conservation: 15, loan: 8 },
@@ -353,7 +391,7 @@
 
   /* ───── もしもの未来：1問だけ別の選択をしたら？ ─────
    * ほかの選択はそのままにして、実際に計算し直した結果だけを表示する */
-  var TIER = { discovery: 9, sister: 8, night: 7, artisan: 7, successor: 8, phantom: 7, onehit: 4, labonly: 3, merger: 2, true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
+  var TIER = { worldbest: 10, whalecity: 9, jellycity: 8, gobystar: 7, landmark: 8, satoumi: 8, treasure: 7, deepbase: 9, hospital: 7, classroom: 7, delayedwin: 8, rebornsmall: 7, thanks: 7, richempty: 3, pricey: 3, emptyres: 3, vetleave: 3, burnout: 3, outsourced: 4, discovery: 9, sister: 8, night: 7, artisan: 7, successor: 8, phantom: 7, onehit: 4, labonly: 3, merger: 2, true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
 
   /* ───── 総合評価（水族館の経営結果に対する評価。プレイヤーの評価ではない） ─────
    * 6つのパラメーターの平均（60%）＋ 結末（40%）で100点満点 */

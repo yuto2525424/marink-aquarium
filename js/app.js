@@ -501,6 +501,14 @@
       }).join("") + "</section>";
   }
 
+  /* 建物のようす（0〜10段階） */
+  function damageMeter(lv) {
+    lv = lv || 0;
+    var cells = "";
+    for (var i = 1; i <= 10; i++) cells += '<i class="' + (i <= lv ? "on" : "") + '"></i>';
+    return '<div class="damage-meter lv' + (lv >= 8 ? "-hi" : lv >= 4 ? "-mid" : "-lo") + '"><span>建物のようす</span><b>' + esc(M.visual.DAMAGE_NAMES[lv]) + '</b><span class="damage-meter__cells" aria-label="傷み ' + lv + ' / 10">' + cells + "</span><em>傷み " + lv + "/10</em></div>";
+  }
+
   function renderResult(result, story, shared) {
     current = { result: result, story: story };
     topbar(false);
@@ -536,6 +544,7 @@
       '<section class="result-top">' +
         (shared ? '<p class="small-note" style="margin:0 0 10px">友達がつくった水族館の結果です</p>' : "") +
         '<div class="result-art">' + art + "</div>" +
+        damageMeter(result.aquarium.damage) +
         '<p class="result-name">' + (shared ? "友達の水族館" : "あなたの水族館") + "<b>" + esc(story.aquariumName) + "</b></p>" +
         '<span class="ending-type">' + esc(result.ending.type) + "</span>" +
         '<span class="ending-badge ' + tone + '">' + esc(story.endingCategory) + "</span>" +

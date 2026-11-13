@@ -235,32 +235,66 @@
     if (f.bigfish_full && f.conservation && s.welfare >= 62 && s.trust >= 60) return "secret";                 // ⑰ ジンベエザメの里帰り
     if (f.conservation && (f.reliable || f.renewed) && s.welfare >= 72 && s.research >= 85 && s.trust >= 70) return "true"; // ⑤ 本当の役目
     if (f.rescue && s.fund < 50) return "merger";                                  // ② 提携先に吸収合併
+    if (state.crisisSeen && f.shrink_end && s.fund >= 10) return "rebornsmall";   // ⑪ 小さく再出発
+    if (state.crisisSeen && f.rescue && s.fund >= 10) return "thanks";             // ⑪ 仲間に救われた
     if (state.crisisSeen && s.fund >= 10) return "miracle";                         // ⑪ どん底からの再建
     if (f.price_low && f.extended && s.staff < 55 && s.pop >= 70) return "chaos";   // ⑮ 大混乱
     if (f.main_big && !f.bigfish_full && s.pop >= 75 && s.fund >= 0) return "gag";  // ⑳ ジンベエザメ近日公開
     if (loopish) return "loop";                                                     // ⑯ 振り出しに戻る
     if (s.research >= 92 && s.pop < 40) return "labonly";                           // ③ 研究所になった水族館
     if (f.bigfish_full && s.pop >= 78 && s.welfare < 62 && s.research < 55) return "onehit"; // ④ ジンベエザメ頼み
+    if (s.fund >= 85 && s.pop < 48) return "richempty";                               // ③ お金だけはある
+    if (f.price_high && s.pop < 45 && s.fund < 40) return "pricey";                   // ④ 高すぎた入館料
+    if (f.reservation && s.pop < 45) return "emptyres";                               // ④ 予約が埋まらない
     if ((f.mega || f.new_wing) && s.fund < 20 && s.pop >= 55) return "overexpanded";
+    if (f.staff_vet && s.staff < 45) return "vetleave";                               // ④ ベテランが去った
+    if (f.staff_elite && s.staff < 38 && s.research >= 60) return "burnout";                              // ④ 燃え尽き
+    if (f.contract && s.staff < 48 && s.welfare < 60) return "outsourced";            // ④ 業者まかせ
     if (s.staff < 32 || (f.overworked && s.staff < 45)) return "staffcrisis";
     if (s.pop >= 72 && s.fund < 25) return "popstruggle";
+    if (f.alliance && s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 35 && s.research >= 75) return "worldbest"; // ⑥ 世界一
     if (s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 35 && s.research >= 55) return "legendary";
+    if (f.delayed && s.fund >= 60 && s.pop >= 66 && s.welfare >= 64) return "delayedwin";                 // ① 待った甲斐
+    if (f.bigfish_full && s.pop >= 72 && s.fund >= 25 && s.welfare >= 62) return "whalecity";             // ① ジンベエザメの聖地
     if (f.loc_campus && f.staff_elite && s.research >= 90 && s.welfare >= 55) return "discovery";               // ① 新種発見
+    if (f.main_deep && s.research >= 92 && s.welfare >= 50) return "deepbase";                             // ① 深海探査の拠点
     if (s.research >= 95 && s.welfare >= 50 && (f.loc_campus || f.staff_elite || f.conservation)) return "research";
+    if (f.conservation && s.welfare >= 75 && s.pop < 55) return "hospital";                                // ⑦ 海の生き物病院
     if (f.conservation && s.research >= 72 && s.trust >= 66 && s.welfare >= 62) return "conservation";
     if (f.staff_rookie && f.care && s.staff >= 72 && s.trust >= 58) return "successor";                      // ① 新人が館長に
     if (f.alliance && s.trust >= 72 && s.research >= 62 && s.fund >= 10) return "sister";                     // ⑦ 姉妹館
     if (f.extended && f.main_deep && s.pop >= 68 && s.staff >= 45 && s.fund >= 10) return "night";             // ⑦ 夜の水族館
     if (f.reservation && f.price_high && s.pop >= 60 && s.fund >= 20) return "phantom";                       // ⑦ 幻の水族館
     if (f.staff_vet && f.care && s.welfare >= 80 && s.pop < 68) return "artisan";                             // ⑦ 職人の名館
+    if (f.loc_nature && s.welfare >= 65 && s.trust >= 65 && s.pop < 75) return "satoumi";                  // ⑦ 里海
+    if (f.main_small && f.downsized && s.welfare >= 60 && s.pop < 75) return "treasure";                   // ⑦ 小さな宝箱
     if ((f.main_small || f.loc_nature) && s.welfare >= 65 && s.pop < 75) return "paradise";
+    if (f.price_low && s.trust >= 68 && s.pop < 78) return "classroom";                                    // ⑦ 子どもたちの教室
     if (s.trust >= 72 && s.pop < 78) return "community";
+    if (f.main_deep && s.pop >= 72 && s.fund >= 25) return "jellycity";                                    // ① クラゲの都
+    if (f.main_small && s.pop >= 72 && s.fund >= 25) return "gobystar";                                    // ⑳ ハゼが国民的スター
+    if (f.loc_tourist && s.pop >= 72 && s.fund >= 25) return "landmark";                                   // ⑦ 観光名所
     if (s.pop >= 72 && s.fund >= 25) return "national";
     if (s.trust >= 62) return "community";
     return "steady";
   }
 
   /* 結果画面・イラスト用の「水族館の構成」 */
+  /* 建物の傷み 0:ぴかぴか 〜 10:廃墟。結末の重さ＋最終ステータスで決まる */
+  var CLOSED = ["closure", "worst", "tragic", "badtrue"];
+  var DAMAGE_BASE = {
+    miracle: 2, rebornsmall: 2, thanks: 2, steady: 1, loop: 2, gag: 1, chaos: 3, onehit: 3, labonly: 3, richempty: 3, outsourced: 3,
+    pricey: 4, emptyres: 4, vetleave: 4, burnout: 4, popstruggle: 4, staffcrisis: 4, overexpanded: 4,
+    open: 5, merrybad: 5, reorg: 6, merger: 6, badtrue: 8, tragic: 8, closure: 8, worst: 9,
+  };
+  function damageLevel(id, s) {
+    var base = DAMAGE_BASE[id] || 0;
+    if (!base) return s.staff < 50 || s.welfare < 55 ? 1 : 0;
+    var lv = base + (s.fund < -40 ? 1 : 0) + (s.staff < 35 ? 1 : 0) + (s.welfare < 40 ? 1 : 0) - (s.trust >= 75 ? 1 : 0);
+    if (CLOSED.indexOf(id) >= 0) return clamp(lv, 8, 10);
+    return clamp(lv, 1, 7);
+  }
+
   function aquariumConfig(state, endingId) {
     var f = state.flags;
     var s = state.stats;
@@ -287,10 +321,10 @@
       reservation: !!f.reservation,
       renewed: !!f.renewed,
       care: !!f.care,
-      closed: ["closure", "worst", "tragic", "badtrue"].indexOf(endingId) >= 0,
+      closed: CLOSED.indexOf(endingId) >= 0,
       gag: endingId === "gag",
       endingId: endingId,
-      damage: { worst: 4, closure: 3, tragic: 3, badtrue: 3, reorg: 2, merger: 2, merrybad: 2, open: 2, overexpanded: 1, staffcrisis: 1, popstruggle: 1, chaos: 1, onehit: 1, labonly: 1 }[endingId] || 0,
+      damage: damageLevel(endingId, s),
       reorg: endingId === "reorg",
       crowd: clamp(Math.round((s.pop - 20) / 8), 0, 10),
       mood: D.endings[endingId].mood,

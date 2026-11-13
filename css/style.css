@@ -487,3 +487,13 @@ details.record[open] summary::after { content: "－"; }
 .zukan__grid li.secret { background: #f3eefa; color: #a596c8; }
 .overall.g-E .overall__rank, .overall-mini.g-E b { background: linear-gradient(135deg, #d8b4c8, #b98aa6); }
 .overall.g-F .overall__rank, .overall-mini.g-F b { background: linear-gradient(135deg, #8d8f9c, #5d6070); }
+
+/* 建物のようす（傷みメーター） */
+.damage-meter { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 8px auto 2px; font-size: 12px; color: #5b7290; }
+.damage-meter b { font-size: 14px; color: #2f4a6b; }
+.damage-meter em { font-style: normal; font-size: 11px; }
+.damage-meter__cells { display: inline-flex; gap: 2px; }
+.damage-meter__cells i { width: 9px; height: 9px; border-radius: 3px; background: #e3ebef; }
+.damage-meter.lv-lo .on { background: #9ccf9f; }
+.damage-meter.lv-mid .on { background: #f3b45a; }
+.damage-meter.lv-hi .on { background: #d9786e; }

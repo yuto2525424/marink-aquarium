@@ -98,6 +98,8 @@ for (let n = 0; n < total; n++) {
   if (r.aquarium.bigFish !== "full") assert(!/ジンベエザメ(が|を悠々|がゆったり)/.test(all), `${hs} 飼っていないジンベエザメが登場`);
   if (h[1] !== "C") assert(!all.includes("クラゲたちが光"), `${hs} クラゲ展示がないのにクラゲ描写`);
   if (r.aquarium.closed) assert(all.includes("閉館"), `${hs} 閉館エンドの描写がない`);
+  assert(r.aquarium.damage >= 0 && r.aquarium.damage <= 10, `${hs} 傷みの段階が範囲外`);
+  if (r.aquarium.closed) assert(r.aquarium.damage >= 8, `${hs} 閉館なのに建物がきれい`);
   assert(!/undefined|null|NaN/.test(all + st.aquariumName + st.endingTitle), `${hs} 物語に未定義値`);
 
   endingCount[r.endingId] = (endingCount[r.endingId] || 0) + 1;

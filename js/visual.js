@@ -106,7 +106,7 @@
     var x0 = 200 - W / 2;
     var gy = 214;
     var out = "";
-    var dark = cfg.closed;
+    var dark = cfg.closed || cfg.damage >= 7;
     var glass = dark ? "#8a97ad" : "url(#glass)";
 
     if (cfg.main === "big") {
@@ -146,12 +146,14 @@
     var len = opts.signText ? Array.from(String(opts.signText)).length : 10;
     var fsz = len <= 12 ? 7.5 : len <= 16 ? 6.6 : 5.8;
     var sw = Math.max(96, Math.min(190, len * fsz + 22));
+    if (cfg.damage >= 9) out += '<g transform="rotate(' + (cfg.damage >= 10 ? 9 : 5) + " " + (200 + sw / 2) + " " + sy + ')">';
     out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="' + (dark ? "#9aa1ae" : "#fffaf0") + '" stroke="' + (dark ? "#7c8494" : "#f2a79c") + '" stroke-width="1.5"/>';
     if (!dark) out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="#fff6c9" opacity=".35"/>';
     if (opts.signText) {
       out += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="' + fsz + '" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
     }
-    return { svg: out, W: W, H: H, x0: x0 };
+    if (cfg.damage >= 9) out += "</g>";
+    return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw };
   }
 
   function annexes(cfg, b) {
@@ -191,8 +193,8 @@
   }
 
   function people(cfg, R) {
-    if (cfg.closed) return "";
-    var out = "", n = cfg.crowd;
+    if (cfg.closed || cfg.damage >= 7) return "";
+    var out = "", n = cfg.damage >= 6 ? Math.floor(cfg.crowd / 2) : cfg.crowd;
     var colors = ["#f2a79c", "#7cc0cf", "#f3d27a", "#9ccf9f", "#c7a6d9", "#f6b98a"];
     for (var i = 0; i < n; i++) {
       var side = i % 2 === 0 ? -1 : 1;
@@ -205,7 +207,7 @@
   }
 
   function staff(cfg) {
-    if (cfg.closed) return "";
+    if (cfg.closed || cfg.damage >= 7) return "";
     var gy = 224, out = "";
     var conf = { veteran: { n: 2, coat: "#4f7fa8", hat: true }, rookie: { n: 5, coat: "#7cc0cf", hat: false }, elite: { n: 2, coat: "#ffffff", hat: false } }[cfg.staffStyle];
     for (var i = 0; i < conf.n; i++) {
@@ -256,7 +258,7 @@
   }
 
   /* ───── 崩壊・くたびれ表現（エンディングの重さに応じて重ねる） ─────
-   * damage 0:きれい 1:くたびれ 2:工事・身売り 3:閉館 4:廃墟 */
+   * damage 0〜10（DAMAGE_NAMES 参照）。数値が大きいほど傷みが進む */
   function crack(x, y, len, R) {
     var d = "M" + x + " " + y, cx = x, cy = y;
     for (var i = 0; i < 4; i++) { cx += (R() - 0.5) * 8; cy += len / 4; d += " L" + cx.toFixed(1) + " " + cy.toFixed(1); }
@@ -279,48 +281,96 @@
     return '<g><rect x="' + x + '" y="' + y + '" width="' + w + '" height="13" rx="2" fill="' + bg + '" stroke="#b8a48a" stroke-width=".6"/>' +
       '<text x="' + (x + w / 2) + '" y="' + (y + 9) + '" font-size="6" font-weight="700" text-anchor="middle" fill="' + color + '" font-family="sans-serif">' + text + "</text></g>";
   }
+  var DAMAGE_NAMES = ["ぴかぴか", "ほんのり色あせ", "ところどころ汚れ", "くたびれ気味", "修理が追いつかない", "工事中", "一部休館", "休館中", "閉館", "荒れ果てた跡地", "廃墟"];
+  function cone(x, y) {
+    return '<g transform="translate(' + x + " " + y + ')"><path d="M-4 0 L0 -11 L4 0 Z" fill="#f08a3c"/><rect x="-2.6" y="-6.5" width="5.2" height="1.6" fill="#fff"/><rect x="-5" y="-1" width="10" height="1.6" fill="#d9772e"/></g>';
+  }
   function damageLayer(cfg, b, R) {
     var lv = cfg.damage || 0;
     if (!lv) return "";
     var gy = 214, x0 = b.x0, W = b.W, H = b.H, out = "", i;
-    // くたびれ：壁のしみ
-    for (i = 0; i < 2 + lv * 2; i++) {
-      out += '<ellipse cx="' + (x0 + 8 + R() * (W - 16)).toFixed(1) + '" cy="' + (gy - 6 - R() * H * 0.7).toFixed(1) + '" rx="' + (4 + R() * 7).toFixed(1) + '" ry="' + (2 + R() * 4).toFixed(1) + '" fill="#8a7f6a" opacity="' + (0.08 + lv * 0.04).toFixed(2) + '"/>';
+    var id = cfg.endingId;
+    // 1〜：壁のしみ（段階が進むほど多く・濃く）
+    var nst = Math.round(1 + lv * 1.6);
+    for (i = 0; i < nst; i++) {
+      out += '<ellipse cx="' + (x0 + 8 + R() * (W - 16)).toFixed(1) + '" cy="' + (gy - 6 - R() * H * 0.7).toFixed(1) + '" rx="' + (4 + R() * 7).toFixed(1) + '" ry="' + (2 + R() * 4).toFixed(1) + '" fill="#8a7f6a" opacity="' + Math.min(0.32, 0.06 + lv * 0.025).toFixed(2) + '"/>';
+    }
+    // 2〜：看板の色あせ
+    if (lv >= 2 && b.sw) out += '<rect x="' + (200 - b.sw / 2) + '" y="' + (b.sy - 9) + '" width="' + b.sw + '" height="16" rx="8" fill="#9a958c" opacity="' + Math.min(0.4, 0.1 + lv * 0.03).toFixed(2) + '"/>';
+    // 3〜：ペンキのはがれ、屋根からのサビ
+    if (lv >= 3) {
+      for (i = 0; i < Math.min(6, lv - 1); i++) {
+        var px = x0 + 6 + R() * (W - 20), py = gy - 10 - R() * H * 0.6;
+        out += '<path d="M' + px.toFixed(1) + " " + py.toFixed(1) + " l5 -2 l4 3 l-2 4 l-6 1 Z" + '" fill="#ded6c8" opacity=".9"/>';
+      }
+      for (i = 0; i < Math.min(5, lv - 2); i++) {
+        var rx = x0 + 10 + R() * (W - 20);
+        out += '<path d="M' + rx.toFixed(1) + " " + (gy - H + 8) + " v" + (8 + R() * 14).toFixed(1) + '" stroke="#a7744f" stroke-width="1.2" opacity=".45" stroke-linecap="round"/>';
+      }
     }
     // 結末ごとの小物
-    var id = cfg.endingId;
+    var hasNotice = false;
     if (id === "overexpanded" || id === "merrybad" || id === "open") {
       var cx = x0 + W + 30;
       out += '<g stroke="#e0a43a" stroke-width="2" fill="none"><path d="M' + cx + ' 216 V' + (gy - H - 50) + '"/><path d="M' + (cx - 46) + " " + (gy - H - 48) + " H" + (cx + 14) + '"/><path d="M' + cx + " " + (gy - H - 50) + " L" + (cx - 46) + " " + (gy - H - 48) + '" stroke-width="1"/></g>' +
         '<path d="M' + (cx - 40) + " " + (gy - H - 47) + " v22" + '" stroke="#555" stroke-width=".8"/><rect x="' + (cx - 45) + '" y="' + (gy - H - 25) + '" width="10" height="7" fill="#8a97ad"/>';
+    }
+    var NOTE = {
+      staffcrisis: ["スタッフ募集中", "#c0645a"], chaos: ["スタッフ募集中", "#c0645a"], vetleave: ["飼育員募集中", "#c0645a"], burnout: ["休養中の職員あり", "#7a5a4a"],
+      popstruggle: ["節約営業中", "#7a5a4a"], onehit: ["節約営業中", "#7a5a4a"], richempty: ["節約営業中", "#7a5a4a"],
+      labonly: ["研究中", "#3a8ea1"], pricey: ["値下げ検討中", "#c0645a"], emptyres: ["当日枠あります", "#3a8ea1"], outsourced: ["業者点検中", "#7a5a4a"],
+    };
+    if (NOTE[id]) { out += notice(x0 + 6, gy - 30, 46, NOTE[id][0], "#fff8e6", NOTE[id][1]); hasNotice = true; }
+    if (id === "reorg") { out += notice(200 - 30, gy - 40, 60, "運営会社が変わります", "#fff", "#7a5a4a"); hasNotice = true; }
+    if (id === "merger") { out += notice(200 - 32, gy - 40, 64, "新しい名前になります", "#fff", "#7a5a4a"); hasNotice = true; }
+    // 4〜：修理中の貼り紙、コーン、小さなひび
+    if (lv >= 4) {
+      if (!hasNotice) out += notice(x0 + W - 42, gy - 30, 36, "修理中", "#fff8e6", "#7a5a4a");
+      out += cone(178, 222) + cone(222, 222);
+      for (i = 0; i < 2; i++) out += crack(x0 + 12 + R() * (W - 24), gy - H * 0.7 + R() * 10, 10 + R() * 6, R);
+    }
+    // 5〜：ブルーシートと足場
+    if (lv >= 5) {
+      out += '<path d="M' + (x0 + W * 0.62) + " " + (gy - H - 2) + " L" + (x0 + W + 4) + " " + (gy - H + 4) + " L" + (x0 + W + 2) + " " + (gy - H + 24) + " L" + (x0 + W * 0.66) + " " + (gy - H + 18) + ' Z" fill="#5b8fd1" opacity=".85"/>';
       out += '<g stroke="#b9a07a" stroke-width="1.2">';
       for (i = 0; i < 4; i++) out += '<line x1="' + (x0 + W - 4) + '" y1="' + (gy - i * 16) + '" x2="' + (x0 + W + 18) + '" y2="' + (gy - i * 16) + '"/>';
       out += '<line x1="' + (x0 + W + 18) + '" y1="' + gy + '" x2="' + (x0 + W + 18) + '" y2="' + (gy - 52) + '"/></g>';
     }
-    if (id === "staffcrisis" || id === "chaos") out += notice(x0 + 6, gy - 30, 44, "スタッフ募集中", "#fff8e6", "#c0645a");
-    if (id === "popstruggle" || id === "onehit") out += notice(x0 + W - 52, gy - 30, 46, "節約営業中", "#fff8e6", "#7a5a4a");
-    if (id === "labonly") out += notice(x0 + 6, gy - 30, 40, "研究中", "#eef6f9", "#3a8ea1");
-    if (id === "reorg") out += notice(200 - 30, gy - 40, 60, "運営会社が変わります", "#fff", "#7a5a4a");
-    if (id === "merger") out += notice(200 - 32, gy - 40, 64, "新しい名前になります", "#fff", "#7a5a4a");
-    // 工事中のブルーシート
-    if (lv >= 2 && id !== "open") out += '<path d="M' + (x0 + W * 0.62) + " " + (gy - H - 2) + " L" + (x0 + W + 4) + " " + (gy - H + 4) + " L" + (x0 + W + 2) + " " + (gy - H + 24) + " L" + (x0 + W * 0.66) + " " + (gy - H + 18) + ' Z" fill="#5b8fd1" opacity=".85"/>';
-    // 閉館：入口に板、貼り紙、雑草
-    if (lv >= 3) {
+    // 6〜：一部休館（ロープと貼り紙、窓が暗い）
+    if (lv >= 6) {
+      out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + (W * 0.45) + '" height="' + H + '" fill="#4a5068" opacity=".18"/>';
+      out += '<path d="M' + (x0 - 18) + " " + (gy + 4) + " Q" + (x0 + 6) + " " + (gy + 10) + " " + (x0 + 30) + " " + (gy + 4) + '" stroke="#d24d4d" stroke-width="1.2" fill="none"/>' +
+        '<rect x="' + (x0 - 19) + '" y="' + (gy - 6) + '" width="2" height="12" fill="#888"/><rect x="' + (x0 + 29) + '" y="' + (gy - 6) + '" width="2" height="12" fill="#888"/>';
+      if (lv < 8) out += notice(x0 - 26, gy - 18, 42, "一部休館中", "#fff", "#c0645a");
+    }
+    // 7：休館中（入口にシャッター）
+    if (lv === 7) {
+      out += '<g><rect x="190" y="' + (gy - 22) + '" width="20" height="22" fill="#a5abb6"/>';
+      for (i = 1; i < 7; i++) out += '<line x1="190" y1="' + (gy - 22 + i * 3.2) + '" x2="210" y2="' + (gy - 22 + i * 3.2) + '" stroke="#7f8694" stroke-width=".6"/>';
+      out += "</g>" + notice(200 - 18, gy - 38, 36, "休館中", "#fffdf4", "#7a5a4a");
+    }
+    // 8〜：閉館（入口に板、雑草、貼り紙）
+    if (lv >= 8) {
       out += board(191, gy - 26, 18, 26);
-      out += weeds(x0 - 20, 4, R) + weeds(x0 + W - 6, 4, R);
+      out += weeds(x0 - 20, 3 + (lv - 8) * 2, R) + weeds(x0 + W - 6, 3 + (lv - 8) * 2, R);
       if (id !== "badtrue") out += '<g transform="rotate(-4 200 ' + (gy - H * 0.45) + ')"><rect x="168" y="' + (gy - H * 0.5) + '" width="64" height="12" fill="#fffdf4" stroke="#c9b9a0" stroke-width=".6"/><text x="200" y="' + (gy - H * 0.5 + 8.6) + '" font-size="6.5" font-weight="700" text-anchor="middle" fill="#7a5a4a" font-family="sans-serif">閉館しました</text></g>';
     }
-    // 廃墟：ひび、割れた窓、屋根の穴、立入禁止、カラス、ツタ
-    if (lv >= 4) {
+    // 9〜：荒れ果てた跡地（割れた窓、ツタ、ごみ、カラス1羽）
+    if (lv >= 9) {
+      out += '<g stroke="#fff" stroke-width=".7" opacity=".8"><path d="M' + (x0 + W * 0.35) + " " + (gy - H * 0.55) + " l6 5 l-3 6 M" + (x0 + W * 0.35) + " " + (gy - H * 0.55) + ' l-5 6"/></g>';
+      out += '<g stroke="#5f8a55" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M' + (x0 + 4) + " " + gy + " q6 -14 0 -26 q-6 -12 4 -22" + '"/><path d="M' + (x0 + W - 6) + " " + gy + " q-6 -16 2 -30" + '"/></g>';
+      for (i = 0; i < 4; i++) out += '<rect x="' + (150 + R() * 100).toFixed(0) + '" y="' + (218 + R() * 6).toFixed(0) + '" width="4" height="2.5" fill="' + ["#c9c2b4", "#9fb3c2", "#d7b48a"][i % 3] + '" transform="rotate(' + (R() * 60 - 30).toFixed(0) + ')" transform-origin="center"/>';
+      out += '<path d="M' + (x0 + W * 0.7) + " " + (gy - H - 4) + ' q4 -4 8 0 q4 -4 8 0" stroke="#2b2f3a" stroke-width="1.4" fill="none"/>';
+    }
+    // 10：廃墟（ひび、屋根の穴、立入禁止、カラスの群れ）
+    if (lv >= 10) {
       for (i = 0; i < 5; i++) out += crack(x0 + 10 + R() * (W - 20), gy - H + 6 + R() * 12, 18 + R() * 20, R);
       out += '<path d="M' + (x0 + W * 0.2) + " " + (gy - H + 2) + " l10 -6 l8 7 l6 -4 l4 9 Z" + '" fill="#3c4050" opacity=".75"/>';
-      out += '<g stroke="#fff" stroke-width=".7" opacity=".8"><path d="M' + (x0 + W * 0.35) + " " + (gy - H * 0.55) + " l6 5 l-3 6 M" + (x0 + W * 0.35) + " " + (gy - H * 0.55) + ' l-5 6"/></g>';
       out += '<g><rect x="' + (x0 - 24) + '" y="' + (gy - 14) + '" width="' + (W + 48) + '" height="4" fill="#f3cf3a"/>';
       for (i = 0; i < (W + 48) / 8; i++) out += '<rect x="' + (x0 - 24 + i * 8) + '" y="' + (gy - 14) + '" width="4" height="4" fill="#2b2b2b"/>';
       out += '<rect x="' + (x0 - 24) + '" y="' + (gy - 14) + '" width="' + (W + 48) + '" height="4" fill="none" stroke="#2b2b2b" stroke-width=".4"/></g>';
       out += notice(x0 - 22, gy - 30, 34, "立入禁止", "#f3cf3a", "#2b2b2b");
       for (i = 0; i < 3; i++) { var bx = 120 + R() * 160, by = 60 + R() * 40; out += '<path d="M' + bx.toFixed(0) + " " + by.toFixed(0) + ' q4 -4 8 0 q4 -4 8 0" stroke="#2b2f3a" stroke-width="1.4" fill="none"/>'; }
-      out += '<g stroke="#5f8a55" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M' + (x0 + 4) + " " + gy + " q6 -14 0 -26 q-6 -12 4 -22" + '"/><path d="M' + (x0 + W - 6) + " " + gy + " q-6 -16 2 -30" + '"/></g>';
     }
     return out;
   }
@@ -348,14 +398,14 @@
       '<g filter="url(#wc)">' + background(cfg, P, R) +
       '<path d="M0 212 C100 206 300 206 400 212 L400 232 L0 232 Z" fill="' + (cfg.location === "nature" ? "#efe3c8" : "#f1e6d0") + '"/>';
     var b = mainBuilding(cfg, P, opts);
-    body += annexes(cfg, b) + b.svg + damageLayer(cfg, b, R) + "</g>" + (cfg.damage >= 3 ? "" : staff(cfg) + people(cfg, R)) + sea(cfg, P, R);
+    body += annexes(cfg, b) + b.svg + damageLayer(cfg, b, R) + "</g>" + staff(cfg) + people(cfg, R) + sea(cfg, P, R);
     if (cfg.renewed && !cfg.closed) body += '<g fill="#fffbe0"><path d="M150 140 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z"/><path d="M262 128 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 Z"/></g>';
-    if (cfg.closed) body += '<rect width="400" height="300" fill="#2b3557" opacity="' + (cfg.damage >= 4 ? ".32" : ".18") + '"/>';
-    else if (cfg.damage >= 1) body += '<rect width="400" height="300" fill="#6b6f7d" opacity="' + (0.04 * cfg.damage).toFixed(2) + '"/>';
+    if (cfg.closed || cfg.damage >= 8) body += '<rect width="400" height="300" fill="#2b3557" opacity="' + (0.16 + Math.max(0, cfg.damage - 8) * 0.07).toFixed(2) + '"/>';
+    else if (cfg.damage >= 1) body += '<rect width="400" height="300" fill="#6b6f7d" opacity="' + (0.025 * cfg.damage).toFixed(3) + '"/>';
     body += '<rect width="400" height="300" filter="url(#paper)"/>';
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="' + (opts.width || 400) + '" height="' + (opts.height || 300) + '" role="img" aria-label="' + esc(opts.label || "完成した水族館のイラスト") + '">' + defs + body + "</svg>";
     return svg.replace(/id="(skyGrad|seaGrad|glass|glow|wc|paper)"/g, 'id="' + id + '-$1"').replace(/url\(#(skyGrad|seaGrad|glass|glow|wc|paper)\)/g, "url(#" + id + "-$1)");
   }
 
-  M.visual = { render: render };
+  M.visual = { render: render, DAMAGE_NAMES: DAMAGE_NAMES };
 })(typeof window !== "undefined" ? window : globalThis);
