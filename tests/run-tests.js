@@ -78,10 +78,15 @@ for (let n = 0; n < total; n++) {
 
   // 結末と状態の矛盾がない
   const s = r.finalStats;
-  const goodEnds = ["legendary", "national", "paradise", "research", "conservation", "miracle", "community"];
+  const goodEnds = ["legendary", "national", "paradise", "research", "conservation", "miracle", "community", "true", "secret", "gag", "loop", "chaos"];
   if (goodEnds.includes(r.endingId)) assert(s.fund >= 0, `${hs} 赤字なのに成功エンド`);
   if (r.endingId === "legendary") assert(s.welfare >= 70, `${hs} 伝説エンドなのに飼育環境が低い`);
-  if (["closure", "reorg"].includes(r.endingId)) assert(s.fund < 0, `${hs} 黒字なのに財務エンド`);
+  if (["closure", "reorg", "worst", "tragic", "badtrue", "merrybad"].includes(r.endingId)) assert(s.fund < 0, `${hs} 黒字なのに財務エンド`);
+  if (r.endingId === "secret") assert(r.aquarium.bigFish === "full" && r.flags.includes("conservation"), `${hs} 条件を満たさないシークレット`);
+  if (r.endingId === "gag") assert(r.aquarium.bigFish === "planned", `${hs} ジンベエザメがいるのにギャグエンド`);
+  if (r.endingId === "open") assert(r.flags.includes("gamble"), `${hs} 大勝負なしのオープンエンド`);
+  if (r.endingId === "true" || r.endingId === "badtrue") assert(r.flags.includes("conservation"), `${hs} 保全なしのトゥルー系`);
+  assert(D.endings[r.endingId].type, `${hs} エンディングの種類がない`);
   if (r.endingId === "miracle") assert(r.crisisSeen, `${hs} 危機なしの再建エンド`);
   // 飼育条件: ジンベエザメは大水槽か新展示館があるときだけ
   if (r.aquarium.bigFish === "full") assert(h[1] === "A" && ((h[2] === "A" && h[3] !== "B") || h[8] === "A"), `${hs} 設備なしでジンベエザメ`);
@@ -92,7 +97,7 @@ for (let n = 0; n < total; n++) {
   assert(st.keyDecisions.length === 3, `${hs} 重要な選択が3つでない`);
   if (r.aquarium.bigFish !== "full") assert(!/ジンベエザメ(が|を悠々|がゆったり)/.test(all), `${hs} 飼っていないジンベエザメが登場`);
   if (h[1] !== "C") assert(!all.includes("クラゲたちが光"), `${hs} クラゲ展示がないのにクラゲ描写`);
-  if (r.endingId === "closure") assert(all.includes("閉館"), `${hs} 閉館エンドの描写がない`);
+  if (r.aquarium.closed) assert(all.includes("閉館"), `${hs} 閉館エンドの描写がない`);
   assert(!/undefined|null|NaN/.test(all + st.aquariumName + st.endingTitle), `${hs} 物語に未定義値`);
 
   endingCount[r.endingId] = (endingCount[r.endingId] || 0) + 1;

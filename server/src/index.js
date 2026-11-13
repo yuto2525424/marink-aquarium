@@ -61,6 +61,7 @@ function buildFacts(r, template) {
   return {
     fixedName: template.customName || null,
     endingCategory: r.ending.name,
+    endingType: r.ending.type,
     endingSummary: r.ending.summary,
     aquarium: r.aquarium,
     flags: r.flags,
@@ -97,8 +98,8 @@ export function validateStory(out, r) {
   }
   const text = [out.storyBeginning, out.storyMiddle, out.storyEnding, out.finalSceneDescription, out.tagline, out.shortSummary].join("");
   if (r.aquarium.main !== "big" && text.includes("ジンベエ")) return "whale shark not owned";
-  if (r.endingId === "closure" && !text.includes("閉館")) return "closure not described";
-  if (["closure", "reorg"].includes(r.endingId) && /大成功|大黒字/.test(text)) return "contradicts ending";
+  if (r.aquarium.closed && !text.includes("閉館")) return "closure not described";
+  if (["closure", "reorg", "worst", "tragic", "badtrue", "merrybad"].includes(r.endingId) && /大成功|大黒字/.test(text)) return "contradicts ending";
   return null;
 }
 

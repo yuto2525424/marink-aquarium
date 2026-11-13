@@ -85,7 +85,9 @@
       // エンディング帯
       ctx.font = "900 26px " + FONT;
       var ov = M.story.overall(result);
-      var cat = story.endingCategory + "　｜　総合評価 " + ov.rank + "（" + ov.score + "点）";
+      var cat = result.ending.type + "：" + story.endingCategory + "　｜　総合評価 " + ov.rank + "（" + ov.score + "点）";
+      // 長い場合は文字を小さくして帯に収める
+      for (var fsz = 26; fsz > 16 && ctx.measureText(cat).width > 940; fsz--) ctx.font = "900 " + fsz + "px " + FONT;
       var cw = ctx.measureText(cat).width + 60;
       roundRect(ctx, (W - cw) / 2, 852, cw, 52, 26);
       ctx.fillStyle = { dusk: "#8a86ad", night: "#8a86ad", warm: "#f08f84" }[result.ending.mood] || "#4fa6b8";

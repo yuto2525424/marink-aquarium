@@ -219,9 +219,25 @@
   function decideEnding(state) {
     var s = state.stats;
     var f = state.flags;
-    if (s.fund < -30 || (s.fund < -10 && (s.trust < 48 || s.pop < 48))) return "closure";
-    if (s.fund < 0) return "reorg";
-    if (state.crisisSeen && s.fund >= 10) return "miracle";
+    var closing = s.fund < -30 || (s.fund < -10 && (s.trust < 48 || s.pop < 48));
+    var loopish = Math.abs(s.fund - 100) <= 45 && ["pop", "welfare", "staff", "research", "trust"].every(function (k) { return Math.abs(s[k] - 50) <= 24; });
+
+    // ── 赤字・閉館まわり ──
+    if (s.fund < -30 && s.welfare < 50) return "worst";            // ⑨ 考えられる限り最悪
+    if (f.conservation && s.research >= 80 && s.fund < -5) return "badtrue";        // ⑱ 真相に気づいたが資金が尽きた
+    if (closing && s.welfare >= 68 && s.trust >= 58) return "tragic";               // ⑲ 誠実でも避けられなかった
+    if (closing) return "closure";                                                  // ⑬ 閉館
+    if (f.gamble && s.fund < 15) return "open";                                     // ⑫ 大勝負の結果はまだ不明
+    if (f.mega && s.fund < 0 && s.pop >= 72) return "merrybad";                     // ③ 館長だけはご満悦
+    if (s.fund < 0) return "reorg";                                                 // ② 事業再編
+
+    // ── 特別な結末 ──
+    if (f.bigfish_full && f.conservation && s.welfare >= 62 && s.trust >= 60) return "secret";                 // ⑰ ジンベエザメの里帰り
+    if (f.conservation && (f.reliable || f.renewed) && s.welfare >= 72 && s.research >= 85 && s.trust >= 70) return "true"; // ⑤ 本当の役目
+    if (state.crisisSeen && s.fund >= 10) return "miracle";                         // ⑪ どん底からの再建
+    if (f.price_low && f.extended && s.staff < 55 && s.pop >= 70) return "chaos";   // ⑮ 大混乱
+    if (f.main_big && !f.bigfish_full && s.pop >= 75 && s.fund >= 0) return "gag";  // ⑳ ジンベエザメ近日公開
+    if (loopish) return "loop";                                                     // ⑯ 振り出しに戻る
     if ((f.mega || f.new_wing) && s.fund < 20 && s.pop >= 55) return "overexpanded";
     if (s.staff < 32 || (f.overworked && s.staff < 45)) return "staffcrisis";
     if (s.pop >= 72 && s.fund < 25) return "popstruggle";
@@ -262,7 +278,8 @@
       reservation: !!f.reservation,
       renewed: !!f.renewed,
       care: !!f.care,
-      closed: endingId === "closure",
+      closed: ["closure", "worst", "tragic", "badtrue"].indexOf(endingId) >= 0,
+      gag: endingId === "gag",
       reorg: endingId === "reorg",
       crowd: clamp(Math.round((s.pop - 20) / 8), 0, 10),
       mood: D.endings[endingId].mood,

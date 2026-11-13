@@ -180,6 +180,10 @@
       }
       out += '<path d="M' + b.x0 + " " + (y + 3) + " Q200 " + (y + 9) + " " + (b.x0 + b.W) + " " + (y + 3) + '" stroke="#b9a99a" stroke-width=".8" fill="none"/>' + flags;
     }
+    if (cfg.gag) {
+      out += '<g transform="translate(' + (b.x0 + b.W + 8) + " " + (gy - 30) + ')"><rect x="-1" y="10" width="2.5" height="20" fill="#a98568"/><rect x="-26" y="-6" width="54" height="20" rx="3" fill="#fff6d6" stroke="#e0b25a" stroke-width="1.2"/>' +
+        '<text x="1" y="3" font-size="5.4" font-weight="700" text-anchor="middle" fill="#8a5a2a" font-family="sans-serif">ジンベエザメ</text><text x="1" y="10.5" font-size="5.4" font-weight="700" text-anchor="middle" fill="#d9605a" font-family="sans-serif">近日公開！</text></g>';
+    }
     if (cfg.reservation && !cfg.closed) {
       out += '<g transform="translate(' + (b.x0 - 4) + " " + (gy - 22) + ')"><rect width="18" height="22" rx="2" fill="#fdf1e4"/><path d="M-2 0 h22 l-3 -6 h-16 Z" fill="#f2a79c"/><text x="9" y="13" font-size="5.5" text-anchor="middle" fill="#7a5a4a" font-family="sans-serif">予約</text></g>';
     }

@@ -744,6 +744,7 @@
      */
     endings: {
       legendary: {
+        type: "ベストエンド",
         name: "伝説の水族館エンド",
         title: "海と人をつなぐ、伝説の水族館",
         mood: "bright",
@@ -751,6 +752,7 @@
         summary: "人気・飼育環境・スタッフ・信頼、そのすべてがそろった奇跡のような水族館。",
       },
       national: {
+        type: "ハッピーエンド",
         name: "全国的人気水族館エンド",
         title: "日本中から人が集まる水族館",
         mood: "bright",
@@ -758,6 +760,7 @@
         summary: "連日の行列、テレビの取材。全国から人が訪れる人気水族館になった。",
       },
       paradise: {
+        type: "グッドエンド",
         name: "小さな楽園エンド",
         title: "小さな海の楽園",
         mood: "calm",
@@ -765,6 +768,7 @@
         summary: "規模は小さくても、生き物も人ものびのび過ごせる楽園のような水族館。",
       },
       research: {
+        type: "グッドエンド",
         name: "海洋研究の聖地エンド",
         title: "世界が注目する、海洋研究の聖地",
         mood: "calm",
@@ -772,6 +776,7 @@
         summary: "観光地としては控えめでも、研究者たちのあこがれの場所になった。",
       },
       conservation: {
+        type: "ハッピーエンド",
         name: "生物保全の先駆者エンド",
         title: "海の未来を守る、保全の先駆者",
         mood: "calm",
@@ -779,6 +784,7 @@
         summary: "生き物を守り、増やし、海へ返す。保全活動の先駆けとして知られる水族館に。",
       },
       miracle: {
+        type: "バッドハッピーエンド",
         name: "奇跡の経営再建エンド",
         title: "どん底からの、奇跡の再建",
         mood: "bright",
@@ -786,6 +792,7 @@
         summary: "一度は閉館寸前まで追い込まれながら、見事に立ち直った水族館。",
       },
       community: {
+        type: "グッドエンド",
         name: "地域密着の愛され水族館エンド",
         title: "町のみんなの、愛され水族館",
         mood: "warm",
@@ -793,6 +800,7 @@
         summary: "遠足、デート、家族の休日。町の人たちの思い出の中に、いつもこの水族館があった。",
       },
       popstruggle: {
+        type: "ビターエンド",
         name: "人気爆発・経営苦戦エンド",
         title: "大人気なのに、金庫はからっぽ",
         mood: "warm",
@@ -800,6 +808,7 @@
         summary: "来館者は絶えないのに、なぜかお金が残らない。うれしい悲鳴が続く水族館。",
       },
       overexpanded: {
+        type: "ビターエンド",
         name: "拡大しすぎた水族館エンド",
         title: "大きくなりすぎた水族館",
         mood: "dusk",
@@ -807,6 +816,7 @@
         summary: "夢を広げすぎて、建物ばかりが大きくなった。維持費の重さに、館長は今日もため息。",
       },
       staffcrisis: {
+        type: "ビターエンド",
         name: "スタッフ不足による運営危機エンド",
         title: "人手が足りない！ 運営危機",
         mood: "dusk",
@@ -814,6 +824,7 @@
         summary: "生き物は元気でも、支える人が足りない。運営はぎりぎりの綱渡りに。",
       },
       reorg: {
+        type: "バッドエンド",
         name: "財務危機・事業再編エンド",
         title: "新しい形での再出発",
         mood: "dusk",
@@ -821,13 +832,96 @@
         summary: "借金がふくらみ、経営は新しい運営会社へ。それでも、生き物たちの暮らしは続いていく。",
       },
       closure: {
+        type: "サッドエンド",
         name: "水族館閉館エンド",
         title: "ありがとう、またいつか",
         mood: "night",
         keyStats: ["fund", "pop", "trust"],
         summary: "10年の歴史に幕。生き物たちは各地の水族館へ引っ越し、看板の明かりが静かに消えた。",
       },
+      true: {
+        type: "トゥルーエンド",
+        name: "海への約束エンド",
+        title: "水族館は、海の未来を預かる場所だった",
+        mood: "bright",
+        keyStats: ["research", "welfare", "trust"],
+        summary: "繁殖に成功した命を故郷の海へ。10年かけて、水族館の本当の役目にたどり着いた。",
+      },
+      secret: {
+        type: "シークレットエンド",
+        secret: true,
+        name: "ジンベエザメの里帰りエンド",
+        title: "おかえり、大きな海へ",
+        mood: "bright",
+        keyStats: ["welfare", "research", "trust"],
+        summary: "大水槽で暮らしてきたジンベエザメが、発信機をつけて海へ帰っていった。",
+      },
+      badtrue: {
+        type: "バッドトゥルーエンド",
+        name: "海へ還る水族館エンド",
+        title: "最後の日、命を海へ返して",
+        mood: "night",
+        keyStats: ["research", "fund"],
+        summary: "水族館の本当の役目に気づいたとき、資金はもう尽きていた。最後に、命を海へ返して閉館。",
+      },
+      tragic: {
+        type: "トラジックエンド",
+        name: "優しすぎた水族館エンド",
+        title: "誠実さだけでは、守りきれなかった",
+        mood: "night",
+        keyStats: ["fund", "welfare", "trust"],
+        summary: "生き物にも人にも誠実だった。それでも、お金の問題だけは避けられなかった。",
+      },
+      worst: {
+        type: "ワーストエンド",
+        name: "すべてが裏目エンド",
+        title: "伝説の“反面教師”水族館",
+        mood: "night",
+        keyStats: ["fund", "trust", "welfare"],
+        summary: "考えられる限りの裏目が重なった10年。のちに業界で語り継がれる教訓になった。",
+      },
+      merrybad: {
+        type: "メリーバッドエンド",
+        name: "館長だけはご満悦エンド",
+        title: "夢の巨大水族館（ただし帳簿は真っ赤）",
+        mood: "warm",
+        keyStats: ["pop", "fund"],
+        summary: "ピカピカの巨大水族館に館長は大満足。でも、借金のことは見ないふりをしている。",
+      },
+      open: {
+        type: "オープンエンド",
+        name: "運命の開館日エンド",
+        title: "答えは、明日の朝に",
+        mood: "dusk",
+        keyStats: ["fund", "pop"],
+        summary: "最後の大勝負の結果は、まだ誰にもわからない。行列はできるのか――。",
+      },
+      chaos: {
+        type: "カオスエンド",
+        name: "毎日がお祭り騒ぎエンド",
+        title: "今日も館内は大混乱！",
+        mood: "warm",
+        keyStats: ["pop", "staff"],
+        summary: "安くて、夜までやっていて、人手は足りない。毎日がドタバタの大にぎわい水族館。",
+      },
+      gag: {
+        type: "ギャグエンド",
+        name: "ジンベエザメ近日公開エンド",
+        title: "日本一来ないジンベエザメ",
+        mood: "warm",
+        keyStats: ["pop"],
+        summary: "「ジンベエザメ近日公開！」の看板が10年。いつしかそれ自体が名物になった。",
+      },
+      loop: {
+        type: "ループエンド",
+        name: "振り出しに戻るエンド",
+        title: "そしてまた、最初の決断へ",
+        mood: "calm",
+        keyStats: ["fund", "pop"],
+        summary: "10年たって、数字はほとんど開館の日と同じ。そして再び、館長に任命される――。",
+      },
       steady: {
+        type: "ノーマルエンド",
         name: "のんびり水族館エンド",
         title: "今日も、のんびり営業中",
         mood: "calm",
