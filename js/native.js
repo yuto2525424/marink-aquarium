@@ -22,13 +22,10 @@
 
   /* 効果音の種類 → 振動の種類 */
   var HAPTIC = {
-    tap: ["impact", "LIGHT"],
-    bubble: ["impact", "MEDIUM"],
-    good: ["notification", "SUCCESS"],
+    // ふつうのボタン操作では振動しない。大きな変化のときだけ
+    "impact-heavy": ["impact", "HEAVY"],
+    "impact-light": ["impact", "LIGHT"],
     fanfare: ["notification", "SUCCESS"],
-    soft: ["impact", "SOFT"],
-    bad: ["notification", "WARNING"],
-    crisis: ["notification", "ERROR"],
   };
   function haptic(kind) {
     var h = plugin("Haptics"), m = HAPTIC[kind];

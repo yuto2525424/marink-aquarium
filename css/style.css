@@ -631,7 +631,7 @@ details.record[open] summary::after { content: "－"; }
 @keyframes cutDrop { from { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } to { transform: translateY(1700%); opacity: 0; } }
 .cut-rain .cutscene__after, .cut-storm .cutscene__after { animation: cutIn .2s ease .1s forwards, cutGloom 1s ease .3s forwards; }
 @keyframes cutGloom { to { filter: brightness(.72) saturate(.7); } }
-.cut-storm .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutShakeFrame .1s linear .9s 6; }
+
 @keyframes cutShakeFrame { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
 .cut-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: cutFlash 1.4s ease .8s both; }
 @keyframes cutFlash { 0%, 100% { opacity: 0; } 8% { opacity: .85; } 14% { opacity: 0; } 22% { opacity: .6; } 30% { opacity: 0; } }
@@ -683,13 +683,18 @@ details.record[open] summary::after { content: "－"; }
 /* 紙吹雪がはじける */
 .cut-burst { position: absolute; z-index: 2; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; }
 .cut-burst i { position: absolute; width: 9px; height: 14px; border-radius: 2px; opacity: 0; animation: cutBurst 1.3s cubic-bezier(.15,.8,.3,1) var(--hit) both; }
-@keyframes cutBurst { 0% { transform: translate(0, 0) rotate(0) scale(.4); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--x), calc(var(--y) + 90px)) rotate(calc(var(--r) + 540deg)) scale(1); opacity: 0; } }
+@keyframes cutBurst { 0% { transform: translate(0, 0) rotate(0) scale(.4); opacity: 0; } 2% { opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--x), calc(var(--y) + 90px)) rotate(calc(var(--r) + 540deg)) scale(1); opacity: 0; } }
 
 /* ドーンの瞬間：白く光って、画面全体が揺れる */
 .cut-impact { position: absolute; inset: 0; z-index: 1; background: #fff; opacity: 0; pointer-events: none; animation: cutImpact .5s ease-out var(--hit) both; }
-@keyframes cutImpact { 0% { opacity: .75; } 100% { opacity: 0; } }
-.cutscene:not(.cut-reduce) .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutQuake .09s linear var(--hit) 7; }
-.cut-build:not(.cut-reduce) .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutZoom 3.6s ease-in-out .2s both, cutQuake .09s linear var(--hit) 9; }
+@keyframes cutImpact { 0% { opacity: 0; } 2% { opacity: .75; } 100% { opacity: 0; } }
+/* 画面の揺れ：大きな変化（pow-big）はしっかり、中くらい（pow-mid）は軽く、小さな変化は揺らさない */
+.cutscene .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both; }
+.cut-build .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutZoom 3.6s ease-in-out .2s both; }
+.pow-big:not(.cut-reduce) .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutQuake .09s linear var(--hit) 7; }
+.cut-build.pow-big:not(.cut-reduce) .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutZoom 3.6s ease-in-out .2s both, cutQuake .09s linear var(--hit) 8; }
+.pow-mid:not(.cut-reduce) .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutQuakeSoft .12s linear var(--hit) 2; }
+@keyframes cutQuakeSoft { 0%, 100% { translate: 0 0; } 50% { translate: 0 2px; } }
 .cut-shrink .cutscene__frame, .cut-coins-out .cutscene__frame, .cut-time .cutscene__frame, .cut-rain .cutscene__frame, .cut-bus .cutscene__frame, .cut-swim-jelly .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both; }
 @keyframes cutQuake { 0%, 100% { translate: 0 0; } 25% { translate: -6px 3px; } 50% { translate: 5px -4px; } 75% { translate: -4px -2px; } }
 
@@ -706,3 +711,34 @@ details.record[open] summary::after { content: "－"; }
 @keyframes cutNewBig { 0% { transform: scale(0) rotate(-12deg); opacity: 0; } 55% { transform: scale(1.5) rotate(6deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
 .cut-reduce .cut-stamp, .cut-reduce .cut-burst, .cut-reduce .cut-impact { display: none; }
+
+/* ───── 変化を大きく見せる：カメラの寄り→引き、建物から丸く広がる切り替え、建物の弾み ───── */
+.cut-choice { --cut-swap: .55s; --hit: 1.35s; }
+.cut-choice.cut-resize { --hit: 1.55s; }
+.cut-choice .cutscene__layer { transform-origin: 50% 64%; }
+.cut-choice .cutscene__before { opacity: 1; animation: cutCamera 2.1s cubic-bezier(.45,0,.2,1) both; }
+.cut-choice .cutscene__after { opacity: 1; clip-path: circle(0% at 50% 64%); -webkit-clip-path: circle(0% at 50% 64%);
+  animation: cutCamera 2.1s cubic-bezier(.45,0,.2,1) both, cutIris .85s cubic-bezier(.6,0,.3,1) var(--cut-swap) both; }
+@keyframes cutCamera { 0% { transform: scale(1.75); } 30% { transform: scale(1.75); } 100% { transform: scale(1); } }
+@keyframes cutIris { from { clip-path: circle(0% at 50% 64%); -webkit-clip-path: circle(0% at 50% 64%); } to { clip-path: circle(120% at 50% 64%); -webkit-clip-path: circle(120% at 50% 64%); } }
+/* 切り替わる輪の光 */
+.cut-choice .cutscene__fx::after { content: ""; position: absolute; left: 50%; top: 64%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 4px solid rgba(255,255,255,.9); box-shadow: 0 0 18px rgba(255,255,255,.9); animation: cutRing .85s cubic-bezier(.6,0,.3,1) var(--cut-swap) both; }
+@keyframes cutRing { from { transform: scale(0); opacity: 0; } 3% { opacity: 1; } 80% { opacity: .8; } to { transform: scale(28); opacity: 0; } }
+
+/* 大きさが変わらない選択でも、建物がぐにっと弾む */
+.cut-choice:not(.cut-resize) .cutscene__after .mk-cluster { animation: cutSquash 1s cubic-bezier(.3,1.6,.5,1) var(--hit) both; }
+@keyframes cutSquash { 0% { transform: scale(1, 1); } 25% { transform: scale(1.14, .86); } 55% { transform: scale(.92, 1.12); } 100% { transform: scale(1, 1); } }
+
+/* 大きさが変わるときは、前の大きさから行き過ぎるくらい伸び縮みする */
+.cut-choice.cut-resize .cutscene__after .mk-cluster { animation: cutResizeHuge 1.6s cubic-bezier(.3,1,.4,1) calc(var(--cut-swap) + .55s) both; }
+@keyframes cutResizeHuge { 0% { transform: scale(var(--from, 1)); } 45% { transform: scale(calc(1 + (1 - var(--from, 1)) * 1.6)); } 70% { transform: scale(calc(1 - (1 - var(--from, 1)) * .35)); } 100% { transform: scale(1); } }
+.cut-choice.cut-shrinking .cutscene__after .mk-cluster { animation: cutShrinkHuge 1.4s cubic-bezier(.3,1,.4,1) calc(var(--cut-swap) + .55s) both; }
+@keyframes cutShrinkHuge { 0% { transform: scale(var(--from, 1)); } 50% { transform: scale(calc(1 - (var(--from, 1) - 1) * 1.4)); } 100% { transform: scale(1); } }
+
+/* 途中のイベント：ゆっくり寄っていく */
+.cut-coins .cutscene__after, .cut-coins-out .cutscene__after, .cut-crowd .cutscene__after, .cut-sparkle .cutscene__after, .cut-hearts .cutscene__after, .cut-bus .cutscene__after { transform-origin: 50% 62%; }
+.cutscene:not(.cut-choice):not(.cut-build) .cutscene__layer svg { transform-origin: 50% 62%; animation: cutKenBurns 2.6s ease-out both; }
+@keyframes cutKenBurns { from { transform: scale(1); } to { transform: scale(1.18); } }
+
+.cut-reduce .cutscene__layer, .cut-reduce .cutscene__layer svg { animation-duration: .01s !important; }
+.cut-reduce.cut-choice .cutscene__after { clip-path: none; -webkit-clip-path: none; }

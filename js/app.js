@@ -413,7 +413,8 @@
       var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
       var ms = reduce ? 1200 : (o.ms || CUT_MS);
       var el = document.createElement("div");
-      el.className = "cutscene cut-" + o.kind + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
+      var power = o.power || "small"; // big：しっかり揺れて振動 / mid：軽く / small：揺れも振動もなし
+      el.className = "cutscene cut-" + o.kind + " pow-" + power + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
       if (o.from) el.style.setProperty("--from", o.from);
       el.style.setProperty("--cut-ms", ms + "ms");
       el.setAttribute("role", "status");
@@ -422,7 +423,7 @@
         '<div class="cutscene__frame">' +
           '<div class="cutscene__layer cutscene__before">' + M.visual.render(o.before, { signText: sign, seed: 11, id: "cb", label: "変わる前の水族館" }) + "</div>" +
           '<div class="cutscene__layer cutscene__after">' + M.visual.render(o.after, { signText: sign, seed: 11, id: "ca", label: "変わったあとの水族館" }) + "</div>" +
-          (CALM[o.kind] ? "" : '<div class="cut-burst">' + confettiBurst() + '</div><i class="cut-impact"></i>') +
+          (power === "small" || CALM[o.kind] ? "" : '<div class="cut-burst">' + confettiBurst() + "</div>" + (power === "big" ? '<i class="cut-impact"></i>' : "")) +
           '<div class="cutscene__fx">' + cutParticles(o.kind) + (o.extraClass && o.extraClass.indexOf("cut-big") >= 0 ? cutParticles("fireworks") : "") + "</div>" +
         "</div>" +
         (o.tag ? '<span class="cutscene__tag mood-' + o.mood + '">' + esc(o.tag) + "</span>" : "") +
@@ -437,6 +438,11 @@
       ["click", "touchstart", "touchend", "pointerdown"].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); if (t === "click") e.preventDefault(); }, { passive: t !== "click" }); });
       document.body.appendChild(el);
       if (o.sound) S.play(o.sound);
+      // iPhoneの振動は、大きな変化のときだけ（「ドン」の瞬間に合わせる）
+      if (power !== "small" && !reduce && M.native) {
+        var hit = o.kind === "build" ? 2600 : /cut-resize/.test(o.extraClass || "") ? 1550 : o.event ? 800 : 1350;
+        setTimeout(function () { M.native.haptic(power === "big" ? "impact-heavy" : "impact-light"); }, hit);
+      }
       setTimeout(function () {
         el.classList.add("is-leaving");
         setTimeout(function () { el.remove(); resolve(); }, 280);
@@ -470,8 +476,13 @@
     }
     if (after.scale >= 5 && after.scale > before.scale) extra.push("cut-big");
     if (from && wa < wb) extra.push("cut-shrinking");
+    if (kind !== "build") extra.push("cut-choice"); // カメラの寄り引き＋丸く広がる切り替え
     var ms = kind === "build" ? 3800 : CUT_MS;
-    return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms,
+    // 変化の大きさ：建設・大きさが15%以上変わる・飾りが2段階以上変わる → big、少しでも大きさや飾りが変わる → mid
+    var change = Math.abs(wa - wb) / Math.max(1, wb), jump = after.scale - before.scale;
+    var power = kind === "build" || change >= 0.15 || Math.abs(jump) >= 2 || (after.scale >= 5 && jump > 0) ? "big"
+      : change >= 0.05 || jump !== 0 || ["annex", "grow", "shrink"].indexOf(kind) >= 0 ? "mid" : "small";
+    return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms, power: power,
       sound: kind === "build" || kind === "annex" || kind === "grow" || kind === "repair" ? "bubble" : null });
   }
 
@@ -495,7 +506,9 @@
     return list.reduce(function (p, e) {
       return p.then(function () {
         var kind = e.id === "ev_income" ? ((e.delta.fund || 0) >= 0 ? "coins" : "rain") : EV_CUT[e.id] || (e.mood === "bad" ? "rain" : "sparkle");
-        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2600,
+        var fund = Math.abs((e.delta && e.delta.fund) || 0);
+        var power = e.mood === "crisis" ? "big" : fund >= 40 ? "mid" : "small";
+        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2600, power: power, event: true,
           sound: e.mood === "crisis" ? "crisis" : e.mood === "bad" || kind === "rain" ? "bad" : "good" });
       });
     }, Promise.resolve());
