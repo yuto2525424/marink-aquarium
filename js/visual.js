@@ -33,8 +33,9 @@
   function fish(x, y, s, color, flip) {
     var t = "translate(" + x + " " + y + ") scale(" + (flip ? -s : s) + " " + s + ")";
     return '<g transform="' + t + '"><path d="M-10 0 C-5 -7 7 -7 10 0 C7 7 -5 7 -10 0 Z" fill="' + color + '"/>' +
-      '<path d="M9 0 L16 -6 L15 0 L16 6 Z" fill="' + color + '"/>' +
-      '<circle cx="-5" cy="-1.5" r="1.3" fill="#2d3b55"/></g>';
+      '<path d="M9 0 L16 -6 L15 0 L16 6 Z" fill="' + color + '"/><path d="M-1 -5 L3 -9 L5 -5 Z" fill="' + color + '"/>' +
+      '<path d="M-2 -5.5 Q0 0 -2 5.5" stroke="#fff" stroke-width="1.6" fill="none" opacity=".75"/><path d="M-8 1.5 Q0 4.5 8 1.5" stroke="#fff" stroke-width="1" fill="none" opacity=".35"/>' +
+      '<circle cx="-5" cy="-1.5" r="1.3" fill="#2d3b55"/><circle cx="-5.4" cy="-1.9" r=".4" fill="#fff"/></g>';
   }
 
   function whaleShark(x, y, s) {
@@ -42,7 +43,10 @@
     for (var i = 0; i < 9; i++) spots += '<circle cx="' + (-22 + i * 6) + '" cy="' + (-3 + (i % 3) * 2.5) + '" r="1.1" fill="#ffffff" opacity=".8"/>';
     return '<g transform="translate(' + x + " " + y + ") scale(" + s + ')">' +
       '<path d="M-34 0 C-30 -9 12 -10 28 -2 L42 -12 L38 0 L42 10 L28 2 C12 9 -30 9 -34 0 Z" fill="#4f7fa8"/>' +
-      '<path d="M-2 -7 L4 -16 L10 -7 Z" fill="#4f7fa8"/>' + spots + "</g>";
+      '<path d="M-33 2 C-24 8 8 8 26 2 C10 6 -22 7 -33 2 Z" fill="#e9f4f7" opacity=".9"/>' +
+      '<path d="M-2 -7 L4 -16 L10 -7 Z" fill="#4f7fa8"/><path d="M-8 4 L-14 12 L-2 6 Z" fill="#43709a"/>' +
+      '<g stroke="#3d6489" stroke-width=".8" fill="none"><path d="M-22 -4 q1.5 4 0 7"/><path d="M-19 -4 q1.5 4 0 7"/><path d="M-16 -4 q1.5 4 0 7"/></g>' +
+      '<circle cx="-28" cy="-2" r="1.3" fill="#13304f"/><path d="M-34 1 q3 1.6 7 .6" stroke="#13304f" stroke-width=".8" fill="none"/>' + spots + "</g>";
   }
 
   function ray(x, y, s) {
@@ -60,6 +64,12 @@
   function cityItem(i, svg) { return '<g class="mk-city" style="--d:' + (0.15 + i * 0.07).toFixed(2) + 's">' + svg + "</g>"; }
   function tower(x, y, w, h, c, lit, R) {
     var out = '<rect x="' + x + '" y="' + (y - h) + '" width="' + w + '" height="' + h + '" rx="1.5" fill="' + c + '"/>';
+    out += '<rect x="' + (x + w - 4) + '" y="' + (y - h) + '" width="4" height="' + h + '" fill="#2f4a6b" opacity=".12"/>';
+    out += '<rect x="' + (x - 1) + '" y="' + (y - h - 2) + '" width="' + (w + 2) + '" height="3" rx="1" fill="#fff" opacity=".55"/>';
+    var roof = R();
+    if (roof < 0.3) out += '<path d="M' + (x + w / 2) + " " + (y - h - 2) + " V" + (y - h - 14) + '" stroke="#9aa6b4" stroke-width="1"/><circle cx="' + (x + w / 2) + '" cy="' + (y - h - 14) + '" r="1.3" fill="#ff8a80"/>';
+    else if (roof < 0.6) out += '<rect x="' + (x + 3) + '" y="' + (y - h - 8) + '" width="8" height="6" rx="1" fill="#b9c6d2"/><rect x="' + (x + 5) + '" y="' + (y - h - 11) + '" width="4" height="3" fill="#a8b6c3"/>';
+    else if (roof < 0.75) out += '<path d="M' + x + " " + (y - h) + " L" + (x + w / 2) + " " + (y - h - 10) + " L" + (x + w) + " " + (y - h) + ' Z" fill="#b6c4d1"/>';
     for (var wy = y - h + 6; wy < y - 6; wy += 7) {
       for (var wx = x + 3; wx < x + w - 4; wx += 6) {
         if (R() < 0.82) out += '<rect x="' + wx.toFixed(1) + '" y="' + wy.toFixed(1) + '" width="3" height="3.4" fill="' + (lit && R() < 0.5 ? "#ffe9a8" : "#cfe2ec") + '" opacity=".95"/>';
@@ -97,7 +107,22 @@
       out += cityItem(13, wheel);
       // 屋上の看板
       out += cityItem(14, '<g><rect x="290" y="96" width="30" height="10" rx="2" fill="#2f4a6b"/><text x="305" y="103.4" font-size="5.5" font-weight="700" text-anchor="middle" fill="#ffd36b" font-family="sans-serif">SEA CITY</text></g>');
-      out += cityItem(15, palm(24, 214) + palm(150, 214) + palm(250, 214) + palm(388, 214));
+      // 遊歩道：手すり・街灯・行き交う車
+      var walk = '<rect x="0" y="216" width="400" height="5" fill="#9aa6b4" opacity=".45"/><g stroke="#fff" stroke-width="1" opacity=".8">';
+      for (i = 0; i < 20; i++) walk += '<line x1="' + (6 + i * 20) + '" y1="218.5" x2="' + (14 + i * 20) + '" y2="218.5"/>';
+      walk += "</g>";
+      [[96, "#f2a79c"], [262, "#7cc0cf"], [330, "#f3d27a"]].forEach(function (car) {
+        walk += '<g transform="translate(' + car[0] + ' 216)"><rect x="0" y="-5" width="16" height="5" rx="2" fill="' + car[1] + '"/><path d="M3 -5 l2 -3 h6 l2 3 Z" fill="' + car[1] + '"/><rect x="5.5" y="-7.6" width="2.4" height="2.2" fill="#e8f4f8"/><rect x="8.6" y="-7.6" width="2.4" height="2.2" fill="#e8f4f8"/><circle cx="4" cy="0.5" r="1.6" fill="#3d4a5c"/><circle cx="12" cy="0.5" r="1.6" fill="#3d4a5c"/></g>';
+      });
+      for (i = 0; i < 5; i++) {
+        var lx = [12, 118, 172, 236, 300][i];
+        walk += '<g><rect x="' + lx + '" y="190" width="1.4" height="27" fill="#6d7d8f"/><path d="M' + (lx + 0.7) + ' 190 q4 -2 6 1" stroke="#6d7d8f" stroke-width="1.2" fill="none"/><ellipse cx="' + (lx + 6.5) + '" cy="192" rx="2.4" ry="1.6" fill="' + (lit ? "#ffe7a3" : "#fff6d0") + '"/></g>';
+      }
+      out += cityItem(15, walk);
+      out += cityItem(16, palm(24, 214) + palm(150, 214) + palm(250, 214) + palm(388, 214));
+      // 空：ヘリコプターと鳥
+      out += cityItem(17, '<g transform="translate(118 74)"><ellipse cx="0" cy="0" rx="7" ry="3.6" fill="#f3d27a"/><rect x="5" y="-1" width="9" height="1.6" fill="#f3d27a"/><path d="M-9 -5 h18" stroke="#5b6b7d" stroke-width="1"/><path d="M0 -5 v1.6" stroke="#5b6b7d"/><rect x="-3" y="-1.4" width="3" height="2" fill="#cfeaf2"/></g>' +
+        '<g stroke="#5b6b7d" stroke-width="1" fill="none"><path d="M200 46 q4 -4 8 0 q4 -4 8 0"/><path d="M228 60 q3 -3 6 0 q3 -3 6 0"/></g>');
     } else if (cfg.location === "nature") {
       // 自然の海辺：重なる山・森・灯台・カモメ
       out += cityItem(0, '<path d="M0 170 L46 108 L84 150 L130 96 L184 160 L230 120 L280 166 L330 112 L400 168 L400 214 L0 214 Z" fill="#b7d3c4" opacity=".75"/>');
@@ -112,6 +137,11 @@
       out += cityItem(4, trees);
       out += cityItem(6, '<g transform="translate(352 118)"><path d="M-7 72 L-4 0 L4 0 L7 72 Z" fill="#fbfaf6"/><rect x="-4.5" y="16" width="9" height="7" fill="#e88f8f"/><rect x="-5.5" y="38" width="11" height="7" fill="#e88f8f"/><rect x="-6" y="-8" width="12" height="9" rx="2" fill="' + P.sun + '"/><path d="M-7 -8 L0 -16 L7 -8 Z" fill="#e88f8f"/><path d="M6 -4 L60 -20 L60 12 Z" fill="#fff6c9" opacity=".35"/></g>');
       out += cityItem(7, '<g stroke="#5b6b7d" stroke-width="1.2" fill="none"><path d="M120 70 q5 -5 10 0 q5 -5 10 0"/><path d="M150 54 q4 -4 8 0 q4 -4 8 0"/><path d="M262 66 q5 -5 10 0 q5 -5 10 0"/></g>');
+      // 花畑と木の桟橋
+      var fl = "";
+      for (i = 0; i < 24; i++) fl += '<circle cx="' + (10 + i * 16 + (i % 3) * 3) + '" cy="' + (203 + (i % 4) * 2) + '" r="1.5" fill="' + ["#f2a79c", "#f3d27a", "#ffffff", "#c7a6d9"][i % 4] + '"/>';
+      out += cityItem(5, fl);
+      out += cityItem(9, '<g><rect x="250" y="226" width="62" height="4" fill="#b8916c"/><rect x="254" y="226" width="2.4" height="12" fill="#8f6c50"/><rect x="276" y="226" width="2.4" height="12" fill="#8f6c50"/><rect x="298" y="226" width="2.4" height="12" fill="#8f6c50"/><path d="M252 226 V219 M310 226 V219 M252 220 H310" stroke="#a3785a" stroke-width="1"/></g>');
       // 漁師小屋
       out += cityItem(8, '<g><rect x="16" y="196" width="26" height="18" fill="#d9b58c"/><path d="M13 197 L29 184 L45 197 Z" fill="#a3785a"/><rect x="25" y="203" width="7" height="11" fill="#8a6a50"/></g>');
     } else {
@@ -123,6 +153,9 @@
       out += cityItem(3, '<g><rect x="318" y="166" width="58" height="46" rx="3" fill="#e6ebef"/><path d="M322 166 A25 25 0 0 1 372 166 Z" fill="#c4d3df"/><rect x="345" y="142" width="4" height="14" fill="#9fb5c7" transform="rotate(25 347 150)"/></g>');
       out += cityItem(4, '<g><rect x="380" y="150" width="20" height="62" fill="#ece6dc"/><rect x="384" y="158" width="5" height="6" fill="#cfe2ec"/><rect x="391" y="158" width="5" height="6" fill="#cfe2ec"/><rect x="384" y="170" width="5" height="6" fill="#cfe2ec"/><rect x="391" y="170" width="5" height="6" fill="#cfe2ec"/></g>');
       out += cityItem(5, tree(132, 210, 0.9) + tree(146, 211, 0.8) + tree(256, 210, 0.9) + tree(244, 211, 0.75));
+      // 芝生と小道、学生
+      out += cityItem(7, '<path d="M0 206 L400 206 L400 216 L0 216 Z" fill="#a9d3a8" opacity=".55"/><path d="M110 216 Q150 208 186 214 M214 214 Q250 208 290 216" stroke="#efe3c8" stroke-width="3" fill="none"/>');
+      out += cityItem(8, '<g><g transform="translate(140 214)"><rect x="-2" y="-7" width="4" height="6" rx="2" fill="#7cc0cf"/><circle cx="0" cy="-9" r="2" fill="#f3d9c4"/><rect x="1.6" y="-6" width="3" height="4" rx="1" fill="#c9805a"/></g><g transform="translate(266 214)"><rect x="-2" y="-7" width="4" height="6" rx="2" fill="#c7a6d9"/><circle cx="0" cy="-9" r="2" fill="#f3d9c4"/><path d="M-3 -10 h6 l-3 -2 Z" fill="#2f4a6b"/></g></g>');
       // 自転車
       out += cityItem(6, '<g stroke="#5b6b7d" stroke-width="1" fill="none"><circle cx="246" cy="222" r="3.5"/><circle cx="256" cy="222" r="3.5"/><path d="M246 222 L250 216 L256 222 M250 216 L254 216"/></g>');
     }
@@ -130,12 +163,18 @@
   }
 
   function palm(x, y) {
-    return '<g transform="translate(' + x + " " + y + ')"><path d="M0 0 Q4 -26 2 -44" stroke="#b08a6a" stroke-width="3" fill="none"/>' +
-      '<path d="M2 -44 Q-14 -50 -22 -38 M2 -44 Q16 -52 24 -40 M2 -44 Q-6 -58 -16 -56 M2 -44 Q10 -60 20 -56" stroke="#79b58e" stroke-width="4" fill="none" stroke-linecap="round"/></g>';
+    var rings = "";
+    for (var k = 1; k < 7; k++) rings += '<path d="M' + (k * 0.5 - 1.6).toFixed(1) + " " + (-k * 6.2).toFixed(1) + " l3.4 -.8" + '" stroke="#8f6c50" stroke-width=".7"/>';
+    return '<g transform="translate(' + x + " " + y + ')"><ellipse cx="2" cy="1" rx="9" ry="2" fill="#000" opacity=".08"/><path d="M0 0 Q4 -26 2 -44" stroke="#b08a6a" stroke-width="3.4" fill="none"/>' + rings +
+      '<path d="M2 -44 Q-14 -50 -22 -38 M2 -44 Q16 -52 24 -40" stroke="#5f9d74" stroke-width="4.4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M2 -44 Q-6 -58 -16 -56 M2 -44 Q10 -60 20 -56 M2 -44 Q2 -56 4 -60" stroke="#79b58e" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="0" cy="-42" r="2" fill="#8a6a40"/><circle cx="4" cy="-41.5" r="2" fill="#7a5c36"/></g>';
   }
 
   function tree(x, y, s) {
-    return '<g transform="translate(' + x + " " + y + ") scale(" + s.toFixed(2) + ')"><rect x="-1.5" y="-10" width="3" height="10" fill="#a98568"/><circle cx="0" cy="-17" r="10" fill="#79b58e"/><circle cx="-5" cy="-13" r="6" fill="#8cc59a"/></g>';
+    return '<g transform="translate(' + x + " " + y + ") scale(" + s.toFixed(2) + ')"><ellipse cx="0" cy="0.5" rx="8" ry="1.8" fill="#000" opacity=".08"/><rect x="-1.6" y="-11" width="3.2" height="11" fill="#a98568"/><rect x=".2" y="-11" width="1.4" height="11" fill="#8f6c50"/>' +
+      '<circle cx="2" cy="-16" r="10" fill="#5f9d74"/><circle cx="-1" cy="-18" r="10" fill="#79b58e"/><circle cx="-5" cy="-14" r="6" fill="#8cc59a"/><circle cx="-4" cy="-22" r="3.4" fill="#a3d3ad" opacity=".9"/>' +
+      '<circle cx="4" cy="-13" r="1.2" fill="#f2a79c" opacity=".8"/><circle cx="-7" cy="-19" r="1" fill="#f3d27a" opacity=".8"/></g>';
   }
 
   /* ── 本館（メイン展示で形が変わる） ── */
@@ -158,7 +197,18 @@
       out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + W + '" height="' + H + '" rx="10" fill="#f8f4ec"/>';
       out += '<path d="M' + (x0 - 6) + " " + (gy - H + 4) + " C" + (x0 + W * 0.25) + " " + (gy - H - 22) + " " + (x0 + W * 0.6) + " " + (gy - H + 14) + " " + (x0 + W + 6) + " " + (gy - H - 8) + " L" + (x0 + W + 6) + " " + (gy - H + 8) + " L" + (x0 - 6) + " " + (gy - H + 12) + ' Z" fill="#5fb0c2"/>';
       var gw = W * 0.62, gx = 200 - gw / 2, gh = H * 0.62, gyy = gy - H * 0.78;
-      out += '<rect x="' + gx + '" y="' + gyy + '" width="' + gw + '" height="' + gh + '" rx="' + gh / 2.4 + '" fill="' + glass + '"/>';
+      out += '<rect x="' + gx + '" y="' + gyy + '" width="' + gw + '" height="' + gh + '" rx="' + gh / 2.4 + '" fill="' + glass + '" stroke="#e6dccb" stroke-width="2.5"/>';
+      if (!dark) {
+        var tank = "";
+        for (var lr = 0; lr < 3; lr++) tank += '<path d="M' + (gx + gw * (0.25 + lr * 0.22)) + " " + gyy + " l" + (gw * 0.08) + " " + gh + " l" + (gw * 0.05) + " 0 l" + (-gw * 0.06) + " " + (-gh) + ' Z" fill="#fff" opacity=".18"/>';
+        tank += '<path d="M' + (gx + 6) + " " + (gyy + gh - 2) + " Q" + (gx + gw * 0.3) + " " + (gyy + gh - 9) + " " + (gx + gw * 0.5) + " " + (gyy + gh - 4) + " T" + (gx + gw - 6) + " " + (gyy + gh - 3) + " L" + (gx + gw - 6) + " " + (gyy + gh) + " L" + (gx + 6) + " " + (gyy + gh) + ' Z" fill="#e8dcc0" opacity=".9"/>';
+        for (var sw = 0; sw < 5; sw++) {
+          var swx = gx + gw * (0.1 + sw * 0.2), swh = gh * (0.25 + (sw % 3) * 0.1);
+          tank += '<path d="M' + swx + " " + (gyy + gh - 3) + " q-3 " + (-swh / 2) + " 0 " + (-swh) + " M" + (swx + 3) + " " + (gyy + gh - 3) + " q3 " + (-swh / 2.4) + " 0 " + (-swh * 0.8) + '" stroke="' + ["#6fb58a", "#8cc59a", "#e9a1a0"][sw % 3] + '" stroke-width="2" fill="none" stroke-linecap="round"/>';
+        }
+        for (var bb = 0; bb < 6; bb++) tank += '<circle cx="' + (gx + gw * (0.15 + bb * 0.14)) + '" cy="' + (gyy + gh * (0.2 + (bb % 3) * 0.18)) + '" r="' + (1 + (bb % 2)) + '" fill="none" stroke="#fff" stroke-width=".7" opacity=".8"/>';
+        out += tank;
+      }
       if (!dark) out += cfg.bigFish === "full" ? whaleShark(200, gyy + gh * 0.5, gw / 95) : ray(200, gyy + gh * 0.45, gw / 90) + fish(gx + gw * 0.2, gyy + gh * 0.75, 0.6, "#f3b49f", false);
     } else if (cfg.main === "small") {
       out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + W + '" height="' + H + '" rx="8" fill="#fbf6ee"/>';
@@ -167,6 +217,7 @@
       for (var i = 0; i < n; i++) {
         var cx = x0 + (W / (n + 1)) * (i + 1);
         out += '<circle cx="' + cx + '" cy="' + (gy - H * 0.62) + '" r="9" fill="' + glass + '" stroke="#e6d6c2" stroke-width="2"/>';
+        if (!dark) out += '<path d="M' + (cx - 5) + " " + (gy - H * 0.62 - 3) + " a6 6 0 0 1 5 -4" + '" stroke="#fff" stroke-width="1.4" fill="none" opacity=".8" stroke-linecap="round"/><path d="M' + (cx - 6) + " " + (gy - H * 0.62 + 7) + " q6 -3 12 0" + '" stroke="#8cc59a" stroke-width="1.6" fill="none"/>';
         if (!dark) out += fish(cx, gy - H * 0.62, 0.35, ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63"][i % 4], i % 2 === 0);
       }
     } else {
@@ -180,13 +231,27 @@
       }
     }
 
+    // 作り込み：外壁の陰影・上下の帯・柱
+    var bodyTop = cfg.main === "deep" ? gy - H * 0.55 : gy - H, bodyH = gy - bodyTop;
+    if (!dark) {
+      out += '<rect x="' + x0 + '" y="' + bodyTop + '" width="' + W + '" height="' + bodyH + '" rx="8" fill="url(#wallShade)"/>';
+      out += '<rect x="' + (x0 + 2) + '" y="' + (bodyTop + 1) + '" width="' + (W - 4) + '" height="3" rx="1.5" fill="#fff" opacity=".7"/>';
+      out += '<rect x="' + (x0 + 4) + '" y="' + (bodyTop + 1) + '" width="3" height="' + (bodyH - 6) + '" fill="#fff" opacity=".45"/><rect x="' + (x0 + W - 7) + '" y="' + (bodyTop + 1) + '" width="3" height="' + (bodyH - 6) + '" fill="#d9cfc0" opacity=".55"/>';
+    }
+    out += '<rect x="' + (x0 - 2) + '" y="' + (gy - 5) + '" width="' + (W + 4) + '" height="5" rx="1.5" fill="' + (dark ? "#8f939d" : "#d8cfc0") + '"/>';
+    // 入口のひさしと階段
+    out += '<path d="M182 ' + (gy - 27) + " L218 " + (gy - 27) + " L214 " + (gy - 21) + " L186 " + (gy - 21) + ' Z" fill="' + (dark ? "#8a97ad" : "#f2a79c") + '"/>';
+    if (!dark) for (var aw = 0; aw < 5; aw++) out += '<rect x="' + (187 + aw * 6) + '" y="' + (gy - 26.5) + '" width="3" height="5" fill="#fff" opacity=".6"/>';
+    out += '<rect x="186" y="' + gy + '" width="28" height="2.5" fill="#e6dccb"/><rect x="183" y="' + (gy + 2.5) + '" width="34" height="2.5" fill="#d8cfc0"/>';
     // 入口
     out += '<path d="M190 ' + gy + " L190 " + (gy - 16) + " A10 10 0 0 1 210 " + (gy - 16) + " L210 " + gy + ' Z" fill="' + (dark ? "#7d8799" : "#a9d6e2") + '" stroke="#e6d6c2" stroke-width="1.5"/>';
     if (dark) out += '<rect x="194" y="' + (gy - 19) + '" width="12" height="8" fill="#fbf8f0" transform="rotate(-6 200 ' + (gy - 15) + ')"/>';
+    else out += '<path d="M200 ' + (gy - 25) + " V" + gy + '" stroke="#e6d6c2" stroke-width="1"/><path d="M193 ' + (gy - 12) + " l5 -8 M195 " + (gy - 5) + ' l6 -10" stroke="#fff" stroke-width="1.2" opacity=".7"/><circle cx="198" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/><circle cx="202" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/>';
 
     // 看板
     var sy = gy - H - (cfg.main === "small" ? 34 : cfg.main === "deep" ? H * 0.3 + 2 : 26);
     if (cfg.main === "deep") sy = gy - H * 0.55 - 4;
+    if ((cfg.scale || 0) >= 6 && !cfg.closed) sy = Math.min(sy, gy - H - 4 - W * 0.18 - 12); // ガラスドームの上に看板
     // 看板の幅と文字の大きさは名前の長さに合わせる
     var len = opts.signText ? Array.from(String(opts.signText)).length : 10;
     var fsz = len <= 12 ? 7.5 : len <= 16 ? 6.6 : 5.8;
@@ -339,7 +404,7 @@
       for (i = 1; i < 5; i++) dome += '<path d="M' + (200 - dw / 2 + (dw / 5) * i) + " " + dy + " Q200 " + (dy - dw * 0.5) + " " + (200 - dw / 2 + (dw / 5) * i) + " " + dy + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/>';
       dome += '<path d="M' + (200 - dw * 0.36) + " " + (dy - dw * 0.18) + " Q200 " + (dy - dw * 0.3) + " " + (200 + dw * 0.36) + " " + (dy - dw * 0.18) + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/></g>';
       var fw = "";
-      [[110, 52, "#f2a79c"], [290, 44, "#f3d27a"], [200, 30, "#7cc0cf"]].forEach(function (p) {
+      [[60, 34, "#f2a79c"], [372, 92, "#f3d27a"], [286, 22, "#7cc0cf"]].forEach(function (p) {
         for (var k = 0; k < 10; k++) {
           var ang = (k / 10) * Math.PI * 2;
           fw += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + (p[0] + Math.cos(ang) * 11).toFixed(1) + '" y2="' + (p[1] + Math.sin(ang) * 11).toFixed(1) + '" stroke="' + p[2] + '" stroke-width="1.6" stroke-linecap="round"/>';
@@ -411,7 +476,12 @@
       var x = 200 + side * (22 + Math.floor(i / 2) * 13 + R() * 5);
       var y = 222 + R() * 6;
       var s = 0.9 + R() * 0.25;
-      out += '<g transform="translate(' + x.toFixed(1) + " " + y.toFixed(1) + ") scale(" + s.toFixed(2) + ')"><rect x="-3" y="-6" width="6" height="8" rx="3" fill="' + colors[i % colors.length] + '"/><circle cx="0" cy="-9" r="2.8" fill="#f3d9c4"/></g>';
+      var kid = i % 4 === 3, hair = ["#4a3a30", "#6d4e36", "#2f2f3a", "#9a6a40"][i % 4], k = kid ? 0.72 : 1;
+      out += '<g transform="translate(' + x.toFixed(1) + " " + y.toFixed(1) + ") scale(" + (s * k).toFixed(2) + ')"><ellipse cx="0" cy="3.6" rx="4" ry="1" fill="#000" opacity=".1"/>' +
+        '<rect x="-2.2" y="0" width="1.8" height="3.4" rx=".8" fill="#5b6b7d"/><rect x=".4" y="0" width="1.8" height="3.4" rx=".8" fill="#5b6b7d"/>' +
+        '<rect x="-3.2" y="-6.5" width="6.4" height="8" rx="3" fill="' + colors[i % colors.length] + '"/><rect x="-3.2" y="-1.5" width="6.4" height="1.6" fill="#fff" opacity=".35"/>' +
+        '<circle cx="0" cy="-9.4" r="2.9" fill="#f3d9c4"/><path d="M-2.9 -9.6 A2.9 2.9 0 0 1 2.9 -9.6 Q0 -10.8 -2.9 -9.6 Z" fill="' + hair + '"/>' +
+        (kid ? '<path d="M3 -5 q2 -6 1 -12" stroke="#9aa6b4" stroke-width=".5" fill="none"/><ellipse cx="4" cy="-19" rx="3.2" ry="3.8" fill="' + ["#f2a79c", "#7cc0cf", "#f3d27a"][i % 3] + '"/>' : "") + "</g>";
     }
     return out;
   }
@@ -432,6 +502,9 @@
 
   function sea(cfg, P, R) {
     var out = '<rect x="0" y="230" width="400" height="70" fill="url(#seaGrad)"/>';
+    out += '<path d="M0 231 Q20 228 40 231 T80 231 T120 231 T160 231 T200 231 T240 231 T280 231 T320 231 T360 231 T400 231 L400 234 L0 234 Z" fill="#fff" opacity=".45"/>';
+    for (var sp = 0; sp < 14; sp++) { var sx2 = (R() * 400).toFixed(0), sy2 = (240 + R() * 50).toFixed(0); out += '<path d="M' + sx2 + " " + sy2 + " l1.6 -1.6 l1.6 1.6 l-1.6 1.6 Z" + '" fill="#fff" opacity=".55"/>'; }
+    out += '<g fill="#8b97a3"><ellipse cx="8" cy="236" rx="12" ry="6"/><ellipse cx="22" cy="238" rx="7" ry="4" fill="#a3aeb8"/><ellipse cx="392" cy="236" rx="11" ry="6"/></g>';
     out += '<path d="M0 232 Q25 227 50 232 T100 232 T150 232 T200 232 T250 232 T300 232 T350 232 T400 232" stroke="#ffffff" stroke-width="1.6" fill="none" opacity=".7"/>';
     out += '<path d="M0 252 Q30 248 60 252 T120 252 T180 252 T240 252 T300 252 T360 252 T420 252" stroke="#ffffff" stroke-width="1" fill="none" opacity=".35"/>';
     var colors = cfg.main === "deep" ? ["#f7c6e0", "#c9e9ff", "#e6d4ff"] : ["#f3b49f", "#f3d27a", "#ffffff"];
@@ -451,11 +524,12 @@
   function sky(cfg, P, R) {
     var out = '<rect width="400" height="300" fill="url(#skyGrad)"/>';
     var night = cfg.mood === "night";
+    out += '<circle cx="' + (night ? 330 : 318) + '" cy="58" r="' + (night ? 30 : 44) + '" fill="' + P.sun + '" opacity=".25"/><circle cx="' + (night ? 330 : 318) + '" cy="58" r="' + (night ? 22 : 32) + '" fill="' + P.sun + '" opacity=".35"/>';
     out += '<circle cx="' + (night ? 330 : 318) + '" cy="58" r="' + (night ? 16 : 22) + '" fill="' + P.sun + '" opacity=".95"/>';
     if (night) for (var s = 0; s < 14; s++) out += '<circle cx="' + (R() * 400).toFixed(0) + '" cy="' + (R() * 110).toFixed(0) + '" r="' + (0.6 + R()).toFixed(1) + '" fill="#fffbe8" opacity=".8"/>';
     for (var c = 0; c < 3; c++) {
       var cx = 40 + c * 130 + R() * 30, cy = 40 + R() * 40;
-      out += '<g opacity="' + (night ? 0.25 : 0.85) + '"><ellipse cx="' + cx + '" cy="' + cy + '" rx="26" ry="9" fill="#ffffff"/><ellipse cx="' + (cx + 12) + '" cy="' + (cy - 6) + '" rx="14" ry="9" fill="#ffffff"/></g>';
+      out += '<g opacity="' + (night ? 0.25 : 0.9) + '"><ellipse cx="' + (cx + 2) + '" cy="' + (cy + 3) + '" rx="27" ry="7" fill="#dbe8f0"/><ellipse cx="' + cx + '" cy="' + cy + '" rx="26" ry="9" fill="#ffffff"/><ellipse cx="' + (cx + 12) + '" cy="' + (cy - 6) + '" rx="14" ry="9" fill="#ffffff"/><ellipse cx="' + (cx - 10) + '" cy="' + (cy - 3) + '" rx="10" ry="7" fill="#ffffff"/><ellipse cx="' + (cx + 6) + '" cy="' + (cy - 9) + '" rx="6" ry="3" fill="#fff" opacity=".9"/></g>';
     }
     return out;
   }
@@ -603,6 +677,7 @@
       '<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + P.sky1 + '"/><stop offset="1" stop-color="' + P.sky2 + '"/></linearGradient>' +
       '<linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + P.sea1 + '"/><stop offset="1" stop-color="' + P.sea2 + '"/></linearGradient>' +
       '<linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9f1f7"/><stop offset="1" stop-color="#7fc3d6"/></linearGradient>' +
+      '<linearGradient id="wallShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity=".35"/><stop offset=".45" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#2f4a6b" stop-opacity=".14"/></linearGradient>' +
       '<radialGradient id="glow"><stop offset="0" stop-color="#9fd8ff" stop-opacity=".7"/><stop offset="1" stop-color="#9fd8ff" stop-opacity="0"/></radialGradient>' +
       '<filter id="wc" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>' +
       '<filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8"/><feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0 0.35  0 0 0 0.08 0"/></filter>' +
@@ -623,7 +698,7 @@
     else if (cfg.damage >= 1) body += '<rect width="400" height="300" fill="#6b6f7d" opacity="' + (0.025 * cfg.damage).toFixed(3) + '"/>';
     body += '<rect width="400" height="300" filter="url(#paper)"/>';
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="' + (opts.width || 400) + '" height="' + (opts.height || 300) + '" role="img" aria-label="' + esc(opts.label || "完成した水族館のイラスト") + '">' + defs + body + "</svg>";
-    return svg.replace(/id="(skyGrad|seaGrad|glass|glow|wc|paper)"/g, 'id="' + id + '-$1"').replace(/url\(#(skyGrad|seaGrad|glass|glow|wc|paper)\)/g, "url(#" + id + "-$1)");
+    return svg.replace(/id="(skyGrad|seaGrad|glass|glow|wc|paper|wallShade)"/g, 'id="' + id + '-$1"').replace(/url\(#(skyGrad|seaGrad|glass|glow|wc|paper|wallShade)\)/g, "url(#" + id + "-$1)");
   }
 
   function widthOf(cfg) {
