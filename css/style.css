@@ -514,3 +514,6 @@ details.record[open] summary::after { content: "－"; }
 .install-card__head p { margin: 0; font-size: 14px; }
 .install-card__steps { margin: 12px 0 4px; padding-left: 1.4em; font-size: 14px; line-height: 1.8; }
 @media (display-mode: standalone) { .install-card { display: none; } }
+
+.title-foot { margin: 18px 0 4px; text-align: center; font-size: 12px; }
+.title-foot a { color: #5b7290; }

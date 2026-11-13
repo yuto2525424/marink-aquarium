@@ -1,0 +1,50 @@
+# Codemagic（Macを持っていなくても、ネット上のMacでiPhoneアプリを組み立てるサービス）の設定
+#
+# 事前に Codemagic の画面で、次の2つを済ませておく（手順は app/STORE.md）
+#   1. App Store Connect の APIキーを登録し、名前を「MARINK_ASC」にする
+#   2. 署名用の証明書（iOS Distribution）を作成し、プロビジョニングプロファイルを取得する
+#
+# このファイルはリポジトリのいちばん上に置く必要があります。
+
+workflows:
+  ios-testflight:
+    name: MARINK水族館 iOS（TestFlightへ送る）
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: MARINK_ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: io.github.yuto2525424.marinkaquarium
+      node: 22
+      xcode: latest
+    triggering:
+      events: []        # 自動では動かさない（Codemagicの画面で「Start new build」を押したときだけ）
+    scripts:
+      - name: 部品のインストール
+        script: |
+          cd app
+          npm ci
+      - name: ゲーム本体をアプリに入れる
+        script: |
+          cd app
+          npm run sync
+      - name: ビルド番号を毎回1つ上げる
+        script: |
+          cd app/ios/App
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" App.xcodeproj/project.pbxproj
+      - name: 署名の設定
+        script: xcode-project use-profiles --project app/ios/App/App.xcodeproj
+      - name: アプリ（ipa）を組み立てる
+        script: |
+          xcode-project build-ipa \
+            --project app/ios/App/App.xcodeproj \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

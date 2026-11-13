@@ -155,6 +155,7 @@
   /* ───── タイトル画面 ───── */
   /* 「ホーム画面に追加」の案内（すでにアプリとして開いているときは出さない） */
   function installHtml() {
+    if (M.native && M.native.isNative) return ""; // アプリ版では出さない
     var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
     if (standalone) return "";
     var ua = navigator.userAgent || "";
@@ -199,6 +200,7 @@
         guideHtml() +
         '<button class="btn btn--primary" id="startBtn2" type="button" style="margin-top:18px">さっそく水族館をつくる！</button>' +
         installHtml() +
+        '<p class="title-foot"><a href="privacy.html">プライバシーポリシー</a></p>' +
         '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       "</section>"
     );
@@ -695,7 +697,9 @@
       M.share.copy(url).then(function () { toast("結果のURLをコピーしました"); }, function () { toast("コピーできませんでした"); });
     });
     $("shareBtn").addEventListener("click", function () {
-      if (navigator.share) {
+      if (M.native && M.native.isNative) {
+        M.native.shareText(text, url).catch(function () {});
+      } else if (navigator.share) {
         navigator.share({ title: "MARINK AQUARIUM", text: text, url: url }).catch(function () {});
       } else {
         M.share.copy(text + " " + url).then(function () { toast("共有用の文章とURLをコピーしました"); }, function () { toast("コピーできませんでした"); });
@@ -735,6 +739,13 @@
     btn.disabled = true;
     btn.textContent = "画像を作成中…";
     M.share.makeImage(current.result, current.story).then(function (blob) {
+      var name0 = "marink-aquarium-" + current.result.resultNumber + ".png";
+      // アプリ版：iPhone標準の共有画面を開く（「画像を保存」で写真アプリに保存できる）
+      if (M.native && M.native.isNative) {
+        return M.native.shareImage(blob, name0, M.share.shareText(current.story)).catch(function (e) {
+          if (!/cancel/i.test(String(e && e.message))) toast("共有画面を開けませんでした");
+        });
+      }
       var url = URL.createObjectURL(blob);
       var name = "marink-aquarium-" + current.result.resultNumber + ".png";
       var file = null;
@@ -763,6 +774,7 @@
 
   /* ───── 起動 ───── */
   function init() {
+    if (M.native) M.native.ready();
     decorate();
     var sb = $("soundBtn");
     sb.setAttribute("aria-pressed", S.isOn() ? "true" : "false");

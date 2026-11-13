@@ -1,0 +1,19 @@
+{
+  "appId": "io.github.yuto2525424.marinkaquarium",
+  "appName": "MARINK水族館",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#e9f7f9",
+    "scrollEnabled": true,
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": false,
+      "backgroundColor": "#cfeaf2",
+      "showSpinner": false
+    }
+  }
+}

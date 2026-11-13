@@ -137,7 +137,9 @@
   }
 
   function shareUrl(history, name) {
-    var base = location.href.split("?")[0].split("#")[0];
+    // アプリ版では、Webサイト版のURLで共有する（友達がアプリなしでも見られるように）
+    var cfg = g.MARINK_CONFIG || {};
+    var base = M.native && M.native.isNative && cfg.webUrl ? cfg.webUrl : location.href.split("?")[0].split("#")[0];
     return base + "?r=" + history.join("") + (name ? "&n=" + encodeURIComponent(name) : "");
   }
 

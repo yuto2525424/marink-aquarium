@@ -202,7 +202,20 @@ npx wrangler deploy
 
 > AIサーバーは、モックを使った自動テスト（`cd server && npm install && npm test`）で動作を確認済みですが、実際のClaude APIへの接続は、APIキーがないため未確認です。
 
-## 6. 未実装・今後の改善候補
+## 6. iPhoneアプリ版（App Store 申請用）
+
+`app/` フォルダに、iPhoneアプリ版（Capacitor）が入っています。Macがなくても、Codemagic（ネット上のMacでアプリを組み立てるサービス）で作れます。
+
+- ゲーム本体・フォント・効果音はすべてアプリの中に入っていて、通信なしで遊べます
+- アプリ版だけの機能：選択時の振動、iPhone標準の共有画面（結果画像を写真に保存）、起動画面
+- `app/STORE.md`：App Store に入力する説明文・審査メモ・プライバシーの回答と、申請の手順
+- `app/screenshots/`：App Store 用スクリーンショット（6.9インチ）
+- `codemagic.yaml`：Codemagic の設定
+- `privacy.html`：プライバシーポリシー
+
+ゲームの中身を直したら、Codemagic で新しくビルドすれば、アプリにも反映されます。
+
+## 7. 未実装・今後の改善候補
 - BGM（効果音のみ実装。右上のボタンでオン・オフ）
 - 共有URLから開いた結果は、AIで作った水族館名ではなくテンプレートの名前で表示される
 - OGP画像（SNSのリンクプレビュー画像）は未設定

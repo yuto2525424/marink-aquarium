@@ -1,0 +1,23 @@
+{
+  "name": "marink-aquarium-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MARINK AQUARIUM ― 運命の館長（iPhoneアプリ版）",
+  "scripts": {
+    "build": "node build-www.js",
+    "sync": "node build-www.js && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "@fontsource/zen-maru-gothic": "5.3.1"
+  }
+}

@@ -10,4 +10,6 @@
 window.MARINK_CONFIG = {
   aiEndpoint: "",
   aiTimeoutMs: 20000,
+  // アプリ版で結果を共有するときに使う、Webサイト版のURL
+  webUrl: "https://yuto2525424.github.io/marink-aquarium/",
 };

@@ -46,7 +46,10 @@
   };
 
   M.sound = {
-    play: function (name) { if (enabled && SFX[name]) { try { SFX[name](); } catch (e) {} } },
+    play: function (name) {
+      if (M.native) M.native.haptic(name); // アプリ版では振動も（音のオン・オフとは別）
+      if (enabled && SFX[name]) { try { SFX[name](); } catch (e) {} }
+    },
     isOn: function () { return enabled; },
     toggle: function () {
       enabled = !enabled;
