@@ -26,6 +26,7 @@
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   function show(html, cls) {
+    if (tapCleanup) tapCleanup();
     app.innerHTML = '<div class="screen ' + (cls || "") + '">' + html + "</div>";
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
     return app.firstChild;
@@ -266,11 +267,12 @@
     }).join("");
     show(
       '<div class="q-head"><span class="q-round">第' + next.round + "問の前に…</span></div>" + cards +
-      '<button class="btn btn--sea" id="toQuestion" type="button" style="margin-top:18px">第' + next.round + "問へ進む</button>",
+      '<button class="btn btn--sea tap-go" id="toQuestion" type="button" style="margin-top:18px">第' + next.round + "問へ進む</button>" +
+      '<p class="tap-hint">画面のどこをタップしても進めます</p>',
       crisis ? "mood-crisis-screen" : ""
     );
     S.play(crisis ? "crisis" : bad ? "bad" : "good");
-    $("toQuestion").addEventListener("click", function () { S.play("tap"); renderQuestion(next.question); });
+    tapAnywhere([document.body], function () { S.play("tap"); renderQuestion(next.question); });
   }
 
   /* 選択肢のお金の動き（目安） */
@@ -341,18 +343,55 @@
       '<div class="sheet__choice">第' + step.round + "問　あなたの決断 " + step.choice + "</div>" +
       '<h2 id="sheetTitle">' + esc(step.label) + "</h2>" +
       '<p class="sheet__text">' + esc(step.feedback) + "</p>" + notes + deltaChips(step.delta) + tip +
-      '<button class="btn ' + (last ? "btn--primary" : "btn--sea") + '" id="sheetNext" type="button">' + (last ? "10年後の水族館を見る" : "次の問題へ") + "</button>";
+      '<button class="btn tap-go ' + (last ? "btn--primary" : "btn--sea") + '" id="sheetNext" type="button">' + (last ? "10年後の水族館を見る" : "次の問題へ") + "</button>" +
+      '<p class="tap-hint">画面のどこをタップしても進めます</p>';
     $("sheetBackdrop").hidden = false;
     sheet.hidden = false;
     sheet.scrollTop = 0;
     var ups = E.STAT_KEYS.reduce(function (a, k) { return a + (step.delta[k] || 0); }, 0);
     setTimeout(function () { S.play(ups >= 0 ? "good" : "soft"); }, 120);
     $("sheetNext").focus({ preventScroll: true });
-    $("sheetNext").addEventListener("click", function () {
+    // ボタンだけでなく、シートや背景のどこをタップしても次へ進める
+    tapAnywhere([sheet, $("sheetBackdrop")], function () {
       S.play("tap");
       closeSheet();
       goRound();
     });
+  }
+
+  /* 画面のどこをタップしても進めるようにする
+   * ・開いた直後の誤タップを防ぐため、少しだけ待ってから受け付ける
+   * ・一度進んだら二重に反応しない
+   * ・スクロールしただけ（指を動かした）なら進まない */
+  var tapCleanup = null;
+  function tapAnywhere(targets, go) {
+    if (tapCleanup) tapCleanup();
+    var ready = false, sx = 0, sy = 0, moved = false;
+    var timer = setTimeout(function () { ready = true; }, 450);
+    function down(e) { var t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY; moved = false; }
+    function move(e) { var t = e.touches ? e.touches[0] : e; if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) moved = true; }
+    function click(e) {
+      if (!ready || moved) return;
+      // 戻る・音のボタンやリンクなどは、そのボタン本来の動きを優先する
+      if (e.target.closest && e.target.closest("a, input, textarea, select, details, .topbar, button:not(.tap-go)")) return;
+      cleanup();
+      go();
+    }
+    function cleanup() {
+      clearTimeout(timer);
+      targets.forEach(function (el) {
+        el.removeEventListener("touchstart", down);
+        el.removeEventListener("touchmove", move);
+        el.removeEventListener("click", click);
+      });
+      if (tapCleanup === cleanup) tapCleanup = null;
+    }
+    targets.forEach(function (el) {
+      el.addEventListener("touchstart", down, { passive: true });
+      el.addEventListener("touchmove", move, { passive: true });
+      el.addEventListener("click", click);
+    });
+    tapCleanup = cleanup;
   }
 
   function closeSheet() {
