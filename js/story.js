@@ -119,6 +119,15 @@
       chaos: "お手ごろな入館料、夜までの営業、そして足りない人手。" + name + "は毎日がお祭り騒ぎ。迷子のアナウンスは鳴りやまず、ある日はタコが水槽のふたを押し開けて大さわぎ（すぐに無事、水槽へ戻った）。なぜかそのドタバタぶりがクセになると評判で、今日も館内は大混乱だ。",
       gag: "「ジンベエザメ 近日公開！」――開館から10年、その看板はいまだに掛かったまま。いつしか“日本一来ないジンベエザメ”としてSNSの名物になり、空っぽの予定地の前で記念撮影する人が後を絶たない。館長は今日もマイクを握る。「来年こそは、来ます！」",
       loop: "10年が過ぎ、気づけば資金も人気も、ほとんど開館の日と同じくらいに戻っていた。まるで時間が一周したかのよう。そして今朝、館長のもとに一通の辞令が届いた。「あなたは今日、新しい水族館の館長に任命されました」――物語は、また最初から始まる。",
+      discovery: "大学の研究室と専門家チームが、展示用に採集した生き物を調べていたある日。顕微鏡をのぞいた研究員が叫んだ。「これ、図鑑に載っていない！」――新種の発見だった。学名には" + name + "にちなんだ名前がつけられ、世界中のニュースになった。",
+      sister: "海外の水族館と結んだ姉妹館の約束は、10年で大きな輪になった。生き物を貸し借りし、飼育の知恵を教え合い、" + name + "には毎年たくさんの国から研究者や家族連れがやってくる。館内の案内板は、いつのまにか5か国語になっていた。",
+      night: "夜まで開く" + name + "は、いつしか街いちばんのデートスポットに。仕事帰りの大人たちが、青く光るクラゲの前で静かに過ごしていく。夜の水族館は、昼とはまったく違う顔を見せてくれる。",
+      artisan: "派手な宣伝はしなかった。けれど、ベテランたちが毎日ていねいに世話をしてきた生き物たちの美しさは、ほかでは見られないと評判に。" + name + "には、全国の水族館から飼育員が修行に訪れるようになった。",
+      successor: "10年前、失敗ばかりだった新人たち。そのひとりが、ついに" + name + "の次の館長に選ばれた。就任のあいさつで、新館長は少し照れながら言った。「あの日、ここで働かせてもらえたから今があります」。水族館の物語は、次の世代へ受け継がれていく。",
+      phantom: "高めの入館料、1時間ごとの予約制、ゆったりした館内。" + name + "は「一度は行ってみたい幻の水族館」と呼ばれるようになり、チケットは半年先まで売り切れ。予約が取れた日は、記念日にする人もいるという。",
+      onehit: "お客さんのお目当ては、ほぼジンベエザメだけ。大水槽の前は大混雑なのに、ほかの展示はがらんとしている。人気はあるけれど、生き物の世話や研究にまで手が回らず、館長は「ほかの子たちも見てほしい」とため息をつく。",
+      labonly: "研究に夢中になるうちに、" + name + "は来館者よりも研究者のほうが多い場所になった。論文は次々と発表されるのに、入口はいつも静か。館長は白衣のまま「今日も実験日和だ」と満足そうだが、受付のスタッフは少しさみしそうだ。",
+      merger: "提携先の大きな水族館グループに助けを求めた結果、" + name + "はグループに吸収されることになった。看板は新しい名前に掛け替えられ、運営方針も変わる。生き物たちはそのまま暮らしていけるけれど、あの日の水族館は、もう別の名前になる。",
       steady: "大事件も大ブームもない10年だった。けれど、" + name + "は今日も変わらず扉を開ける。" + main + "を眺めながら、のんびり過ごす常連さんたちがいる。",
     };
     return T[r.endingId] + "10年後の資金余力は" + money(s.fund) + "、年間の来館者はおよそ" + visitors(s.pop).slice(1) + "。";
@@ -211,6 +220,15 @@
     chaos: { price_low: 12, extended: 12, variety: 8 },
     gag: { main_big: 12, downsized: 10 },
     loop: {},
+    discovery: { loc_campus: 12, staff_elite: 12 },
+    sister: { alliance: 15 },
+    night: { extended: 12, main_deep: 12 },
+    artisan: { staff_vet: 12, care: 12 },
+    successor: { staff_rookie: 15, care: 12 },
+    phantom: { reservation: 12, price_high: 12 },
+    onehit: { big_tanks: 10, main_big: 10 },
+    labonly: { loc_campus: 8, conservation: 8, staff_elite: 8 },
+    merger: { alliance: 12, loan: 10 },
   };
 
   var STEP_FLAGS = [
@@ -335,16 +353,18 @@
 
   /* ───── もしもの未来：1問だけ別の選択をしたら？ ─────
    * ほかの選択はそのままにして、実際に計算し直した結果だけを表示する */
-  var TIER = { true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
+  var TIER = { discovery: 9, sister: 8, night: 7, artisan: 7, successor: 8, phantom: 7, onehit: 4, labonly: 3, merger: 2, true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
 
   /* ───── 総合評価（水族館の経営結果に対する評価。プレイヤーの評価ではない） ─────
    * 6つのパラメーターの平均（60%）＋ 結末（40%）で100点満点 */
   var OVERALL = [
-    { min: 83, rank: "S", name: "伝説級の水族館" },
-    { min: 75, rank: "A", name: "一流の水族館" },
-    { min: 68, rank: "B", name: "評判の水族館" },
-    { min: 47, rank: "C", name: "発展途上の水族館" },
-    { min: -1, rank: "D", name: "再起を待つ水族館" },
+    { min: 85, rank: "S", name: "伝説級の水族館" },
+    { min: 78, rank: "A", name: "一流の水族館" },
+    { min: 73, rank: "B", name: "評判の水族館" },
+    { min: 67, rank: "C", name: "堅実な水族館" },
+    { min: 52, rank: "D", name: "発展途上の水族館" },
+    { min: 45, rank: "E", name: "苦戦中の水族館" },
+    { min: -1, rank: "F", name: "再起を待つ水族館" },
   ];
   function overall(r) {
     var s = r.finalStats;

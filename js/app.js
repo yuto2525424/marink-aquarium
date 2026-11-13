@@ -135,7 +135,7 @@
       '<section class="card goal"><span class="goal__tag">ゲームの目的</span>' +
         "<h2>10回の決断で、<br>水族館の10年後を決めよう</h2>" +
         "<p>限られた資金100億円で、立地・展示・スタッフ・入館料…を決めていく館長ゲーム。人気、生き物の暮らし、研究、信頼をすべて両立させて「伝説の水族館」を目指そう。でも、思いがけない未来が待っていることも…？</p></section>" +
-      '<ul class="hooks" style="margin-top:12px"><li><b>' + Object.keys(D.endings).length + '種類</b>のエンディング</li><li><b>59,049</b>通りの未来</li><li><b>S〜D</b>の総合評価</li></ul>' +
+      '<ul class="hooks" style="margin-top:12px"><li><b>' + Object.keys(D.endings).length + '種類</b>のエンディング</li><li><b>59,049</b>通りの未来</li><li><b>S〜F</b>の総合評価</li></ul>' +
       '<section class="card" style="margin-top:12px"><h2 class="section-title">遊び方</h2><ol class="steps">' +
         "<li><span><b>3つの選択肢から1つを選ぶ</b>正解はありません。どれにもメリットとデメリットがあります。</span></li>" +
         "<li><span><b>資金や人気などが変化</b>資金（億円）・集客力など6つのパラメーターが動きます。前の選択が、あとで効いてくることも。※金額はゲーム用の目安です。</span></li>" +

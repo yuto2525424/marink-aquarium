@@ -234,16 +234,25 @@
     // ── 特別な結末 ──
     if (f.bigfish_full && f.conservation && s.welfare >= 62 && s.trust >= 60) return "secret";                 // ⑰ ジンベエザメの里帰り
     if (f.conservation && (f.reliable || f.renewed) && s.welfare >= 72 && s.research >= 85 && s.trust >= 70) return "true"; // ⑤ 本当の役目
+    if (f.rescue && s.fund < 50) return "merger";                                  // ② 提携先に吸収合併
     if (state.crisisSeen && s.fund >= 10) return "miracle";                         // ⑪ どん底からの再建
     if (f.price_low && f.extended && s.staff < 55 && s.pop >= 70) return "chaos";   // ⑮ 大混乱
     if (f.main_big && !f.bigfish_full && s.pop >= 75 && s.fund >= 0) return "gag";  // ⑳ ジンベエザメ近日公開
     if (loopish) return "loop";                                                     // ⑯ 振り出しに戻る
+    if (s.research >= 92 && s.pop < 40) return "labonly";                           // ③ 研究所になった水族館
+    if (f.bigfish_full && s.pop >= 78 && s.welfare < 62 && s.research < 55) return "onehit"; // ④ ジンベエザメ頼み
     if ((f.mega || f.new_wing) && s.fund < 20 && s.pop >= 55) return "overexpanded";
     if (s.staff < 32 || (f.overworked && s.staff < 45)) return "staffcrisis";
     if (s.pop >= 72 && s.fund < 25) return "popstruggle";
     if (s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 35 && s.research >= 55) return "legendary";
+    if (f.loc_campus && f.staff_elite && s.research >= 90 && s.welfare >= 55) return "discovery";               // ① 新種発見
     if (s.research >= 95 && s.welfare >= 50 && (f.loc_campus || f.staff_elite || f.conservation)) return "research";
     if (f.conservation && s.research >= 72 && s.trust >= 66 && s.welfare >= 62) return "conservation";
+    if (f.staff_rookie && f.care && s.staff >= 72 && s.trust >= 58) return "successor";                      // ① 新人が館長に
+    if (f.alliance && s.trust >= 72 && s.research >= 62 && s.fund >= 10) return "sister";                     // ⑦ 姉妹館
+    if (f.extended && f.main_deep && s.pop >= 68 && s.staff >= 45 && s.fund >= 10) return "night";             // ⑦ 夜の水族館
+    if (f.reservation && f.price_high && s.pop >= 60 && s.fund >= 20) return "phantom";                       // ⑦ 幻の水族館
+    if (f.staff_vet && f.care && s.welfare >= 80 && s.pop < 68) return "artisan";                             // ⑦ 職人の名館
     if ((f.main_small || f.loc_nature) && s.welfare >= 65 && s.pop < 75) return "paradise";
     if (s.trust >= 72 && s.pop < 78) return "community";
     if (s.pop >= 72 && s.fund >= 25) return "national";
@@ -280,6 +289,8 @@
       care: !!f.care,
       closed: ["closure", "worst", "tragic", "badtrue"].indexOf(endingId) >= 0,
       gag: endingId === "gag",
+      endingId: endingId,
+      damage: { worst: 4, closure: 3, tragic: 3, badtrue: 3, reorg: 2, merger: 2, merrybad: 2, open: 2, overexpanded: 1, staffcrisis: 1, popstruggle: 1, chaos: 1, onehit: 1, labonly: 1 }[endingId] || 0,
       reorg: endingId === "reorg",
       crowd: clamp(Math.round((s.pop - 20) / 8), 0, 10),
       mood: D.endings[endingId].mood,

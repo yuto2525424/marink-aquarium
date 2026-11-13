@@ -485,3 +485,5 @@ details.record[open] summary::after { content: "－"; }
 .ending-type + .ending-badge { margin-top: 8px; }
 .zukan__grid li small { display: block; font-size: 10px; font-weight: 700; opacity: .8; }
 .zukan__grid li.secret { background: #f3eefa; color: #a596c8; }
+.overall.g-E .overall__rank, .overall-mini.g-E b { background: linear-gradient(135deg, #d8b4c8, #b98aa6); }
+.overall.g-F .overall__rank, .overall-mini.g-F b { background: linear-gradient(135deg, #8d8f9c, #5d6070); }
