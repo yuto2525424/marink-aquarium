@@ -81,7 +81,9 @@ for (let n = 0; n < total; n++) {
   const goodEnds = ["legendary", "national", "paradise", "research", "conservation", "miracle", "community", "true", "secret", "gag", "loop", "chaos"];
   if (goodEnds.includes(r.endingId)) assert(s.fund >= 0, `${hs} 赤字なのに成功エンド`);
   if (r.endingId === "legendary") assert(s.welfare >= 70, `${hs} 伝説エンドなのに飼育環境が低い`);
-  if (["closure", "reorg", "worst", "tragic", "badtrue", "merrybad"].includes(r.endingId)) assert(s.fund < 0, `${hs} 黒字なのに財務エンド`);
+  if (["closure", "reorg", "worst", "tragic", "badtrue"].includes(r.endingId)) assert(s.fund < 0, `${hs} 黒字なのに財務エンド`);
+  if (r.endingId === "merrybad") assert(s.fund < 25, `${hs} 資金に余裕があるのにご満悦エンド`);
+  if (["legendary", "worldbest", "national", "whalecity", "jellycity", "gobystar", "landmark", "delayedwin"].includes(r.endingId)) assert(s.fund >= 100, `${hs} 資金が減ったのに大成功エンド`);
   if (r.endingId === "secret") assert(r.aquarium.bigFish === "full" && r.flags.includes("conservation"), `${hs} 条件を満たさないシークレット`);
   if (r.endingId === "gag") assert(r.aquarium.bigFish === "planned", `${hs} ジンベエザメがいるのにギャグエンド`);
   if (r.endingId === "open") assert(r.flags.includes("gamble"), `${hs} 大勝負なしのオープンエンド`);

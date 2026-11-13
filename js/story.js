@@ -67,7 +67,7 @@
     var buzz = a.main === "big" ? "大水槽の写真" : a.main === "small" ? "「変顔のハゼ」動画" : "幻想的なクラゲの写真";
     t.push("やがて" + buzz + "がSNSで話題になると、" + { A: "営業時間を延ばして来館者を迎え入れた。", B: "予約制を導入して、混雑から生き物と来館者を守った。", C: "スタッフと設備を増やして、ブームに備えた。" }[ch(r, 8)]);
     var evs = [];
-    r.steps.forEach(function (s) { s.events.forEach(function (e) { if (e.mood !== "info" && e.id !== "ev_crisis") evs.push(e); }); });
+    r.steps.forEach(function (s) { s.events.forEach(function (e) { if (e.mood !== "info" && e.id !== "ev_crisis" && e.id !== "ev_income") evs.push(e); }); });
     if (evs.length) t.push("「" + evs.slice(0, 3).map(function (e) { return e.title; }).join("」「") + "」――この10年には、そんな出来事もあった。");
     return t.join("");
   }
@@ -102,7 +102,7 @@
       paradise: "大きな水族館ではない。でも、" + main + "がのびのび暮らすこの場所を、訪れた人はみんな好きになった。派手な宣伝はしなくても、口コミで少しずつファンが増えていった。",
       research: name + "は観光地としては控えめなまま。けれど、" + (has(r, "loc_campus") ? "近くの大学との共同研究" : "専門スタッフの地道な研究") + "が次々と成果を上げ、世界中の研究者が訪れる海洋研究の聖地になった。",
       conservation: "研究・保全活動への投資が実を結び、" + name + "では絶滅が心配される生き物の繁殖に成功。生まれた命を海へ返す活動は、多くの人の共感を集めた。",
-      miracle: "一度は資金が底をつき、閉館もささやかれた。" + (has(r, "rescue") ? "それでも仲間の水族館との提携" : has(r, "shrink_end") ? "それでも規模を縮小して身の丈に合った経営に切り替えたこと" : "それでも最後の決断") + "が流れを変えた。10年目の決算は、まさかの黒字。どん底からの復活劇は、町の語り草になった。",
+      miracle: "一度は資金が底をつき、閉館もささやかれた。" + (has(r, "rescue") ? "それでも仲間の水族館との提携" : has(r, "shrink_end") ? "それでも規模を縮小して身の丈に合った経営に切り替えたこと" : "それでも最後の決断") + "が流れを変えた。10年目の決算では、資金が見事に持ち直した。どん底からの復活劇は、町の語り草になった。",
       community: "全国的に有名なわけではない。でも、" + name + "は町の人たちにとって特別な場所になった。遠足の子どもたち、初デートの二人、三世代でやって来る家族。みんなの思い出の中に、" + main + "がいる。",
       popstruggle: "来館者は毎日いっぱい。なのに、" + (bad ? bad + "が重くのしかかり、" : "") + "なぜか金庫にお金が残らない。人気があるのに苦しいという、ちょっと不思議な経営が続いている。",
       overexpanded: "夢を大きく広げた結果、建物はどんどん大きくなった。けれど" + (bad || "施設の維持費") + "が経営を圧迫。立派な水族館の裏で、館長は今日も電卓とにらめっこしている。",
@@ -147,9 +147,12 @@
       vetleave: "開館から" + name + "を支えてきたベテランたちが、ひとり、またひとりと引退していった。長年の勘と技術を受け継ぐ若手は、まだ育っていない。最後のベテランは、分厚い飼育ノートを残して去っていった。",
       burnout: "少数精鋭の専門チームは、どんな難しい飼育もこなしてきた。けれど人数が少ないぶん、ひとりひとりの負担は限界を超えていた。休職する専門家が相次ぎ、" + name + "は大事な研究をいくつも止めることになった。",
       outsourced: "長期保守契約のおかげで、設備のトラブルは減った。けれど、なんでも業者まかせにしているうちに、" + name + "には水槽の中の生き物をよく知るスタッフが少なくなっていた。「この魚、なんていう名前ですか？」。お客さんの質問に、答えられる人がいない。",
+      idealist: "生き物たちの暮らしを第一に、必要だと思うことにはお金を惜しまなかった10年。" + name + "は胸を張れる水族館になった。けれど売上はそれに追いつかず、金庫の中身は開館前より少なくなっている。「次の10年は、理想とお金の両方を守りたい」。館長は決算書を見ながら、そうつぶやいた。",
+      dreamlab: name + "の研究チームは、10年で数えきれないほどの論文を発表した。学会では「あの水族館の研究はすごい」と評判だ。けれど研究設備や調査の費用はかさみ、来館者からの売上では追いつかなかった。「研究の価値を、もっとお客さんに伝えられたら」。館長は次の10年の宿題を見つめている。",
+      devoted: "無料の観察会、学校への出張授業、お祭りへの参加。" + name + "は地域のためにできることを全部やってきた。町の人たちからの「ありがとう」はたくさん集まった。けれど、そのぶん出ていくお金も多く、資金は開館前より少なくなっている。「地域に愛されながら、ちゃんと稼ぐ方法もあるはずだ」。館長はまた作戦を練りはじめた。",
       steady: "大事件も大ブームもない10年だった。けれど、" + name + "は今日も変わらず扉を開ける。" + main + "を眺めながら、のんびり過ごす常連さんたちがいる。",
     };
-    return T[r.endingId] + "10年後の資金余力は" + money(s.fund) + "、年間の来館者はおよそ" + visitors(s.pop).slice(1) + "。";
+    return T[r.endingId] + "10年後の資金余力は" + money(s.fund) + "（スタートの" + money(D.initialStats.fund) + "から" + money(s.fund - D.initialStats.fund, true) + "）、年間の来館者はおよそ" + visitors(s.pop).slice(1) + "。";
   }
 
   function finalScene(r, name) {
@@ -229,6 +232,9 @@
     legendary: { staff_vet: 6, reliable: 6, expanded_staff: 6 },
     national: { loc_tourist: 8, big_tanks: 8, new_wing: 8 },
     steady: {},
+    idealist: { care: 10, reliable: 8 },
+    dreamlab: { conservation: 10, loc_campus: 8, staff_elite: 8 },
+    devoted: { price_low: 10, keep: 6 },
     worldbest: {alliance:12,staff_vet:6,reliable:6},
     whalecity: {bigfish_full:15,big_tanks:8},
     jellycity: {main_deep:15},
@@ -355,7 +361,7 @@
 
   /* ───── 経営レポート：パラメーターごとの評価 ───── */
   var COMMENTS = {
-    fund: ["赤字…。借金や出費が重くのしかかった", "ぎりぎり黒字。大きな出費はできない", "なんとか黒字。無駄づかいは禁物", "しっかり黒字。安定した経営", "お金の心配はなし！ 次の挑戦も余裕"],
+    fund: ["お金が底をついた…。借金や出費が重くのしかかった", "最初の100億円から大きく減ってしまった", "最初より少し減った。大きな出費はできない", "最初より増えた！ 安定した経営", "大きく増えた！ 次の挑戦も余裕"],
     pop: ["お客さんはほとんど来なかった…", "来館者は少なめ。宣伝が課題", "ほどよくにぎわっている", "週末は行列ができる人気館", "全国から人が押し寄せる大人気"],
     welfare: ["生き物たちの暮らしが心配な状態", "ところどころ手が回っていない", "大きな問題はなく安定", "生き物たちはのびのび元気", "生き物たちは最高の環境で暮らしている"],
     staff: ["スタッフが足りず限界寸前", "人手不足ぎみで余裕がない", "なんとか回っている", "頼れるスタッフがそろっている", "最強のチームワーク"],
@@ -365,7 +371,7 @@
   var GRADES = ["D", "C", "B", "A", "S"];
 
   function gradeIndex(key, v) {
-    var th = key === "fund" ? [0, 20, 45, 80] : [40, 55, 70, 85];
+    var th = key === "fund" ? [0, 60, 100, 150] : [40, 55, 70, 85];
     var i = 0;
     while (i < th.length && v >= th[i]) i++;
     return i;
@@ -377,7 +383,7 @@
       var gi = gradeIndex(k, v);
       return { key: k, label: D.statLabels[k], value: v, start: D.initialStats[k], diff: v - D.initialStats[k], grade: GRADES[gi], gradeIndex: gi, comment: COMMENTS[k][gi],
         valueText: fmtVal(k, v), startText: fmtVal(k, D.initialStats[k]), diffText: fmtVal(k, v - D.initialStats[k], true),
-        extra: k === "pop" ? "年間来館者 " + visitors(v) : k === "fund" ? (v >= 0 ? "黒字" : "赤字") : "" };
+        extra: k === "pop" ? "年間来館者 " + visitors(v) : k === "fund" ? "最初より" + money(v - D.initialStats.fund, true) : "" };
     });
   }
 
@@ -391,23 +397,23 @@
 
   /* ───── もしもの未来：1問だけ別の選択をしたら？ ─────
    * ほかの選択はそのままにして、実際に計算し直した結果だけを表示する */
-  var TIER = { worldbest: 10, whalecity: 9, jellycity: 8, gobystar: 7, landmark: 8, satoumi: 8, treasure: 7, deepbase: 9, hospital: 7, classroom: 7, delayedwin: 8, rebornsmall: 7, thanks: 7, richempty: 3, pricey: 3, emptyres: 3, vetleave: 3, burnout: 3, outsourced: 4, discovery: 9, sister: 8, night: 7, artisan: 7, successor: 8, phantom: 7, onehit: 4, labonly: 3, merger: 2, true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
+  var TIER = { idealist: 5, dreamlab: 5, devoted: 5, worldbest: 10, whalecity: 9, jellycity: 8, gobystar: 7, landmark: 8, satoumi: 8, treasure: 7, deepbase: 9, hospital: 7, classroom: 7, delayedwin: 8, rebornsmall: 7, thanks: 7, richempty: 3, pricey: 3, emptyres: 3, vetleave: 3, burnout: 3, outsourced: 4, discovery: 9, sister: 8, night: 7, artisan: 7, successor: 8, phantom: 7, onehit: 4, labonly: 3, merger: 2, true: 10, secret: 10, gag: 6, loop: 5, chaos: 4, open: 3, merrybad: 3, tragic: 1, badtrue: 1, worst: 0, legendary: 10, national: 8, research: 8, conservation: 8, miracle: 7, paradise: 7, community: 7, steady: 5, popstruggle: 4, staffcrisis: 3, overexpanded: 3, reorg: 2, closure: 1 };
 
   /* ───── 総合評価（水族館の経営結果に対する評価。プレイヤーの評価ではない） ─────
    * 6つのパラメーターの平均（60%）＋ 結末（40%）で100点満点 */
   var OVERALL = [
-    { min: 85, rank: "S", name: "伝説級の水族館" },
-    { min: 78, rank: "A", name: "一流の水族館" },
-    { min: 73, rank: "B", name: "評判の水族館" },
-    { min: 67, rank: "C", name: "堅実な水族館" },
-    { min: 52, rank: "D", name: "発展途上の水族館" },
-    { min: 45, rank: "E", name: "苦戦中の水族館" },
+    { min: 86, rank: "S", name: "伝説級の水族館" },
+    { min: 79, rank: "A", name: "一流の水族館" },
+    { min: 67, rank: "B", name: "評判の水族館" },
+    { min: 56, rank: "C", name: "堅実な水族館" },
+    { min: 49, rank: "D", name: "発展途上の水族館" },
+    { min: 41, rank: "E", name: "苦戦中の水族館" },
     { min: -1, rank: "F", name: "再起を待つ水族館" },
   ];
   function overall(r) {
     var s = r.finalStats;
     var parts = E.STAT_KEYS.map(function (k) {
-      return k === "fund" ? Math.max(0, Math.min(100, (s.fund + 20) / 1.2)) : s[k];
+      return k === "fund" ? Math.max(0, Math.min(100, s.fund / 2)) : s[k];
     });
     var avg = parts.reduce(function (a, b) { return a + b; }, 0) / parts.length;
     var score = Math.round(avg * 0.6 + (TIER[r.endingId] / 10) * 100 * 0.4);

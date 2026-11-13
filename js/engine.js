@@ -59,7 +59,7 @@
   /* 第10問・危機イベントで使う「経営状況モード」 */
   function modeOf(state) {
     var s = state.stats;
-    if (s.fund < 0 || (s.debt > 0 && s.fund < 15)) return "crisis";
+    if (s.fund < 25 || (s.debt > 0 && s.fund < s.debt + 10)) return "crisis"; // 手元資金が少ない・借入金を返せない
     if (s.research >= 78) return "research";
     if (s.fund >= 50 && s.pop >= 65) return "strong";
     return "normal";
@@ -141,8 +141,56 @@
     };
   }
 
+  /* ───── 毎年の営業成績（開館後） ─────
+   * 売上 ＝ 来館者 ×（入館料 ＋ グッズ・飲食）
+   * 運営費 ＝ 来館者1人あたりの費用（エサ代・光熱費・清掃・アルバイトなど）＋ 固定費（社員の給料・設備の維持費など）
+   * 入館料が高いと、高級感を保つサービス費がかかる。安いと、グッズや飲食にお金を使ってもらいやすい */
+  var PRICE = {
+    high: { yen: 3500, goods: 1100, extra: 900 },
+    mid: { yen: 2400, goods: 1500, extra: 0 },
+    low: { yen: 1500, goods: 1900, extra: 0 },
+  };
+  var PER_VISITOR_COST = 1500;
+  var INCOME_YEARS = { 7: [1, 3], 8: [4, 4], 9: [5, 5], 10: [6, 7] }; // 第N問の前に入る期間
+  var SETTLE_YEARS = [8, 10];
+  var FIXED_BASE = 19;
+  // 設備・体制ごとの毎年の維持費（億円/年）。大きな設備ほど、毎年お金がかかる
+  var UPKEEP = { big_tanks: 3, new_wing: 4, mega: 6, main_deep: 2, care: 1.5, expanded_staff: 1.5, extended: 1, renewed: -0.5, contract: 1, downsized: -1.5, shrink_end: -3 };
+  function yearlyBusiness(state) {
+    var s = state.stats, f = state.flags;
+    var P = PRICE[f.price_high ? "high" : f.price_low ? "low" : "mid"];
+    var visitors = Math.max(5, s.pop * 2); // 万人（結果画面の「年間来館者」と同じ）
+    var repeat = 1 + (s.trust - 50) / 250; // 信頼が高いとリピーターが増える
+    var sales = visitors * repeat * (P.yen + P.goods) / 10000; // 億円
+    var variable = visitors * repeat * (PER_VISITOR_COST + P.extra) / 10000;
+    var fixed = FIXED_BASE + (s.staff - 50) * 0.04;
+    Object.keys(UPKEEP).forEach(function (k) { if (f[k]) fixed += UPKEEP[k]; });
+    return { visitors: visitors, price: P.yen, sales: sales, cost: variable + fixed, profit: sales - variable - fixed };
+  }
+  function businessPeriod(state, from, to) {
+    var y = yearlyBusiness(state), n = to - from + 1;
+    var total = Math.round(y.profit * n);
+    return {
+      years: n, from: from, to: to, total: total,
+      sales: Math.round(y.sales * n), cost: Math.round(y.cost * n),
+      visitors: Math.round(y.visitors), price: y.price,
+    };
+  }
+
   function applyEvents(state, roundNo) {
     var fired = [];
+    var span = INCOME_YEARS[roundNo];
+    if (span) {
+      var b = businessPeriod(state, span[0], span[1]);
+      var d = applyEffects(state, { fund: b.total });
+      var label = span[0] === span[1] ? "開館" + span[0] + "年目" : "開館" + span[0] + "〜" + span[1] + "年目";
+      fired.push({
+        id: "ev_income", mood: b.total >= 0 ? "good" : "bad", business: b, delta: d,
+        title: label + "の営業成績：" + (b.total >= 0 ? "黒字" : "赤字"),
+        text: "年間の来館者はおよそ" + b.visitors + "万人（大人" + b.price.toLocaleString("ja-JP") + "円）。" + b.years + "年間で売上 約" + b.sales + "億円、運営費 約" + b.cost + "億円。" +
+          (b.total >= 0 ? "差し引き" + b.total + "億円が水族館に残った。" : "差し引き" + (-b.total) + "億円の赤字になってしまった。"),
+      });
+    }
     D.events.forEach(function (ev) {
       if (ev.beforeRound !== roundNo) return;
       if (!evalCond(ev.when, state)) return;
@@ -186,11 +234,11 @@
     var ledger = [];
     var startFund = s.fund;
 
-    var op = Math.round((s.pop - 50) * 0.7 + (s.staff - 50) * 0.2 + (s.trust - 50) * 0.2);
-    ledger.push({ label: "10年間の営業収支", value: op });
-    s.fund += op;
+    var b = businessPeriod(state, SETTLE_YEARS[0], SETTLE_YEARS[1]);
+    ledger.push({ label: "開館" + b.from + "〜" + b.to + "年目の営業利益", value: b.total, business: b });
+    s.fund += b.total;
 
-    if (f.contract) { s.fund -= 10; ledger.push({ label: "設備保守契約の費用", value: -10 }); }
+
     if (f.alliance) { s.fund += 6; ledger.push({ label: "連携による経費の分担", value: 6 }); }
     if (f.mega) {
       if (s.pop >= 70 && s.staff >= 50) { s.fund += 10; ledger.push({ label: "拡張エリアの入館収入", value: 10 }); }
@@ -219,62 +267,69 @@
   function decideEnding(state) {
     var s = state.stats;
     var f = state.flags;
-    var closing = s.fund < -30 || (s.fund < -10 && (s.trust < 48 || s.pop < 48));
+    var closing = s.fund < -20 || (s.fund < 0 && (s.trust < 50 || s.pop < 50));
     var loopish = Math.abs(s.fund - 100) <= 45 && ["pop", "welfare", "staff", "research", "trust"].every(function (k) { return Math.abs(s[k] - 50) <= 24; });
 
     // ── 赤字・閉館まわり ──
-    if (s.fund < -30 && s.welfare < 50) return "worst";            // ⑨ 考えられる限り最悪
+    if (s.fund < -12 && s.welfare < 78 && s.trust < 70) return "worst";            // ⑨ 考えられる限り最悪
     if (f.conservation && s.research >= 80 && s.fund < -5) return "badtrue";        // ⑱ 真相に気づいたが資金が尽きた
-    if (closing && s.welfare >= 68 && s.trust >= 58) return "tragic";               // ⑲ 誠実でも避けられなかった
+    if (closing && s.welfare >= 85 && s.trust >= 62) return "tragic";               // ⑲ 誠実でも避けられなかった
     if (closing) return "closure";                                                  // ⑬ 閉館
-    if (f.gamble && s.fund < 15) return "open";                                     // ⑫ 大勝負の結果はまだ不明
-    if (f.mega && s.fund < 0 && s.pop >= 72) return "merrybad";                     // ③ 館長だけはご満悦
+    if (f.gamble && s.fund < 40) return "open";                                     // ⑫ 大勝負の結果はまだ不明
+    if (f.mega && s.fund < 25 && s.pop >= 72) return "merrybad";                     // ③ 館長だけはご満悦
     if (s.fund < 0) return "reorg";                                                 // ② 事業再編
 
     // ── 特別な結末 ──
-    if (f.bigfish_full && f.conservation && s.welfare >= 62 && s.trust >= 60) return "secret";                 // ⑰ ジンベエザメの里帰り
-    if (f.conservation && (f.reliable || f.renewed) && s.welfare >= 72 && s.research >= 85 && s.trust >= 70) return "true"; // ⑤ 本当の役目
-    if (f.rescue && s.fund < 50) return "merger";                                  // ② 提携先に吸収合併
+    if (f.bigfish_full && f.conservation && s.welfare >= 62 && s.trust >= 60 && s.fund >= 100) return "secret";                 // ⑰ ジンベエザメの里帰り
+    if (f.conservation && (f.reliable || f.renewed) && s.welfare >= 72 && s.research >= 85 && s.trust >= 70 && s.fund >= 100) return "true"; // ⑤ 本当の役目
+    if (f.rescue && s.fund < 70) return "merger";                                  // ② 提携先に吸収合併
     if (state.crisisSeen && f.shrink_end && s.fund >= 10) return "rebornsmall";   // ⑪ 小さく再出発
     if (state.crisisSeen && f.rescue && s.fund >= 10) return "thanks";             // ⑪ 仲間に救われた
     if (state.crisisSeen && s.fund >= 10) return "miracle";                         // ⑪ どん底からの再建
     if (f.price_low && f.extended && s.staff < 55 && s.pop >= 70) return "chaos";   // ⑮ 大混乱
-    if (f.main_big && !f.bigfish_full && s.pop >= 75 && s.fund >= 0) return "gag";  // ⑳ ジンベエザメ近日公開
+    if (f.main_big && !f.bigfish_full && s.pop >= 75 && s.fund >= 100) return "gag";  // ⑳ ジンベエザメ近日公開
     if (loopish) return "loop";                                                     // ⑯ 振り出しに戻る
     if (s.research >= 92 && s.pop < 40) return "labonly";                           // ③ 研究所になった水族館
     if (f.bigfish_full && s.pop >= 78 && s.welfare < 62 && s.research < 55) return "onehit"; // ④ ジンベエザメ頼み
-    if (s.fund >= 85 && s.pop < 48) return "richempty";                               // ③ お金だけはある
-    if (f.price_high && s.pop < 45 && s.fund < 40) return "pricey";                   // ④ 高すぎた入館料
+    if (s.fund >= 100 && s.pop < 55) return "richempty";                               // ③ お金だけはある
+    if (f.price_high && s.pop < 50 && s.fund < 70) return "pricey";                   // ④ 高すぎた入館料
     if (f.reservation && s.pop < 45) return "emptyres";                               // ④ 予約が埋まらない
-    if ((f.mega || f.new_wing) && s.fund < 20 && s.pop >= 55) return "overexpanded";
+    if ((f.mega || f.new_wing) && s.fund < 60 && s.pop >= 55) return "overexpanded";
     if (f.staff_vet && s.staff < 45) return "vetleave";                               // ④ ベテランが去った
     if (f.staff_elite && s.staff < 38 && s.research >= 60) return "burnout";                              // ④ 燃え尽き
     if (f.contract && s.staff < 48 && s.welfare < 60) return "outsourced";            // ④ 業者まかせ
     if (s.staff < 32 || (f.overworked && s.staff < 45)) return "staffcrisis";
-    if (s.pop >= 72 && s.fund < 25) return "popstruggle";
-    if (f.alliance && s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 35 && s.research >= 75) return "worldbest"; // ⑥ 世界一
-    if (s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 35 && s.research >= 55) return "legendary";
-    if (f.delayed && s.fund >= 60 && s.pop >= 66 && s.welfare >= 64) return "delayedwin";                 // ① 待った甲斐
-    if (f.bigfish_full && s.pop >= 72 && s.fund >= 25 && s.welfare >= 62) return "whalecity";             // ① ジンベエザメの聖地
+    if (s.pop >= 72 && s.fund < 70) return "popstruggle";
+    // ── ここから先の「成功」エンドは、資金がスタート（100億円）以上に増えていることが条件 ──
+    if (s.fund < D.initialStats.fund) {
+      if (s.research >= 85) return "dreamlab";                                                // ④ 研究に夢を賭けた
+      if (s.welfare >= 72) return "idealist";                                                 // ④ 生き物ファースト
+      if (s.trust >= 66) return "devoted";                                                    // ④ 地域に尽くした
+      return "steady";
+    }
+    if (f.alliance && s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 130 && s.research >= 75) return "worldbest"; // ⑥ 世界一
+    if (s.pop >= 75 && s.welfare >= 70 && s.staff >= 65 && s.trust >= 68 && s.fund >= 120 && s.research >= 55) return "legendary";
+    if (f.delayed && s.fund >= 130 && s.pop >= 66 && s.welfare >= 64) return "delayedwin";                 // ① 待った甲斐
+    if (f.bigfish_full && s.pop >= 72 && s.fund >= 100 && s.welfare >= 62) return "whalecity";             // ① ジンベエザメの聖地
     if (f.loc_campus && f.staff_elite && s.research >= 90 && s.welfare >= 55) return "discovery";               // ① 新種発見
     if (f.main_deep && s.research >= 92 && s.welfare >= 50) return "deepbase";                             // ① 深海探査の拠点
     if (s.research >= 95 && s.welfare >= 50 && (f.loc_campus || f.staff_elite || f.conservation)) return "research";
-    if (f.conservation && s.welfare >= 75 && s.pop < 55) return "hospital";                                // ⑦ 海の生き物病院
+    if (f.conservation && s.welfare >= 75 && s.pop < 70) return "hospital";                                // ⑦ 海の生き物病院
     if (f.conservation && s.research >= 72 && s.trust >= 66 && s.welfare >= 62) return "conservation";
     if (f.staff_rookie && f.care && s.staff >= 72 && s.trust >= 58) return "successor";                      // ① 新人が館長に
-    if (f.alliance && s.trust >= 72 && s.research >= 62 && s.fund >= 10) return "sister";                     // ⑦ 姉妹館
-    if (f.extended && f.main_deep && s.pop >= 68 && s.staff >= 45 && s.fund >= 10) return "night";             // ⑦ 夜の水族館
-    if (f.reservation && f.price_high && s.pop >= 60 && s.fund >= 20) return "phantom";                       // ⑦ 幻の水族館
+    if (f.alliance && s.trust >= 72 && s.research >= 62 && s.fund >= 70) return "sister";                     // ⑦ 姉妹館
+    if (f.extended && f.main_deep && s.pop >= 68 && s.staff >= 45 && s.fund >= 70) return "night";             // ⑦ 夜の水族館
+    if (f.reservation && f.price_high && s.pop >= 60 && s.fund >= 100) return "phantom";                       // ⑦ 幻の水族館
     if (f.staff_vet && f.care && s.welfare >= 80 && s.pop < 68) return "artisan";                             // ⑦ 職人の名館
     if (f.loc_nature && s.welfare >= 65 && s.trust >= 65 && s.pop < 75) return "satoumi";                  // ⑦ 里海
     if (f.main_small && f.downsized && s.welfare >= 60 && s.pop < 75) return "treasure";                   // ⑦ 小さな宝箱
     if ((f.main_small || f.loc_nature) && s.welfare >= 65 && s.pop < 75) return "paradise";
     if (f.price_low && s.trust >= 68 && s.pop < 78) return "classroom";                                    // ⑦ 子どもたちの教室
     if (s.trust >= 72 && s.pop < 78) return "community";
-    if (f.main_deep && s.pop >= 72 && s.fund >= 25) return "jellycity";                                    // ① クラゲの都
-    if (f.main_small && s.pop >= 72 && s.fund >= 25) return "gobystar";                                    // ⑳ ハゼが国民的スター
-    if (f.loc_tourist && s.pop >= 72 && s.fund >= 25) return "landmark";                                   // ⑦ 観光名所
-    if (s.pop >= 72 && s.fund >= 25) return "national";
+    if (f.main_deep && s.pop >= 72 && s.fund >= 100) return "jellycity";                                    // ① クラゲの都
+    if (f.main_small && s.pop >= 72 && s.fund >= 100) return "gobystar";                                    // ⑳ ハゼが国民的スター
+    if (f.loc_tourist && s.pop >= 72 && s.fund >= 100) return "landmark";                                   // ⑦ 観光名所
+    if (s.pop >= 72 && s.fund >= 100) return "national";
     if (s.trust >= 62) return "community";
     return "steady";
   }
@@ -283,7 +338,7 @@
   /* 建物の傷み 0:ぴかぴか 〜 10:廃墟。結末の重さ＋最終ステータスで決まる */
   var CLOSED = ["closure", "worst", "tragic", "badtrue"];
   var DAMAGE_BASE = {
-    miracle: 2, rebornsmall: 2, thanks: 2, steady: 1, loop: 2, gag: 1, chaos: 3, onehit: 3, labonly: 3, richempty: 3, outsourced: 3,
+    miracle: 2, idealist: 2, dreamlab: 2, devoted: 2, rebornsmall: 2, thanks: 2, steady: 1, loop: 2, gag: 1, chaos: 3, onehit: 3, labonly: 3, richempty: 3, outsourced: 3,
     pricey: 4, emptyres: 4, vetleave: 4, burnout: 4, popstruggle: 4, staffcrisis: 4, overexpanded: 4,
     open: 5, merrybad: 5, reorg: 6, merger: 6, badtrue: 8, tragic: 8, closure: 8, worst: 9,
   };

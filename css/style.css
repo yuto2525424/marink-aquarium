@@ -497,3 +497,8 @@ details.record[open] summary::after { content: "－"; }
 .damage-meter.lv-lo .on { background: #9ccf9f; }
 .damage-meter.lv-mid .on { background: #f3b45a; }
 .damage-meter.lv-hi .on { background: #d9786e; }
+
+.ledger__note { display: block; font-size: 11px; color: #8aa0b8; font-weight: 400; }
+.money-verdict { margin: 8px 0 4px; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
+.money-verdict.up { background: #eaf6ec; color: #2f6b45; }
+.money-verdict.down { background: #fbeceb; color: #9a4a42; }

@@ -83,7 +83,7 @@
     hudShown = Object.assign({}, stats);
     $("hud").innerHTML = E.STAT_KEYS.map(function (k) {
       var v = stats[k];
-      var pct = k === "fund" ? Math.max(0, Math.min(100, (v / 150) * 100)) : v;
+      var pct = k === "fund" ? Math.max(0, Math.min(100, v / 2)) : v;
       var low = k === "fund" ? v < 20 : v < 40;
       var d = animate && prev ? v - prev[k] : 0;
       var pop = d ? '<span class="hud__pop ' + (d > 0 ? "up" : "down") + '">' + (d > 0 ? "+" : "") + d + (k === "fund" ? "億" : "") + "</span>" : "";
@@ -138,7 +138,7 @@
       '<ul class="hooks" style="margin-top:12px"><li><b>' + Object.keys(D.endings).length + '種類</b>のエンディング</li><li><b>59,049</b>通りの未来</li><li><b>S〜F</b>の総合評価</li></ul>' +
       '<section class="card" style="margin-top:12px"><h2 class="section-title">遊び方</h2><ol class="steps">' +
         "<li><span><b>3つの選択肢から1つを選ぶ</b>正解はありません。どれにもメリットとデメリットがあります。</span></li>" +
-        "<li><span><b>資金や人気などが変化</b>資金（億円）・集客力など6つのパラメーターが動きます。前の選択が、あとで効いてくることも。※金額はゲーム用の目安です。</span></li>" +
+        "<li><span><b>資金や人気などが変化</b>資金（億円）・集客力など6つのパラメーターが動きます。開館後は毎年「売上 − 運営費」の利益（または赤字）が入ります。大きな設備ほど毎年の維持費も重く、判断を誤ると経営危機に。※金額はゲーム用の目安です。</span></li>" +
         "<li><span><b>10年後の結末を発表</b>あなただけの水族館のイラスト、10年間の物語、総合評価、「もしもの未来」がわかります。</span></li>" +
       "</ol></section>" +
       '<section class="card"><h2 class="section-title">こんな未来が待っているかも…</h2><p class="teaser">' +
@@ -406,7 +406,7 @@
       grid += '<polygon points="' + keys.map(function (k, i) { return pt(i, s).join(","); }).join(" ") + '" fill="none" stroke="#dfe7ea" stroke-width="1"/>';
     });
     var axes = keys.map(function (k, i) { var p = pt(i, 1); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="#e6ecef"/>'; }).join("");
-    var vals = keys.map(function (k) { return k === "fund" ? Math.max(0, Math.min(100, (fs.fund + 30) / 1.6)) : fs[k]; });
+    var vals = keys.map(function (k) { return k === "fund" ? Math.max(0, Math.min(100, fs.fund / 2)) : fs[k]; });
     var poly = vals.map(function (v, i) { return pt(i, Math.max(0.04, v / 100)).join(","); }).join(" ");
     var labels = keys.map(function (k, i) {
       var p = pt(i, 1.22);
@@ -419,7 +419,7 @@
   /* パラメーターごとの評価カード（S〜D・スタートとの比較・ひとこと） */
   function statCards(result) {
     return '<ul class="stat-cards">' + M.story.report(result).map(function (s) {
-      var pct = s.key === "fund" ? Math.max(3, Math.min(100, (s.value + 50) / 2)) : Math.max(3, s.value);
+      var pct = s.key === "fund" ? Math.max(3, Math.min(100, s.value / 2)) : Math.max(3, s.value);
       return '<li class="stat-card g-' + s.grade + '">' +
         '<span class="stat-card__grade" aria-label="評価' + s.grade + '">' + s.grade + "</span>" +
         '<div class="stat-card__body"><div class="stat-card__head"><b>' + s.label + "</b>" +
@@ -509,6 +509,36 @@
     return '<div class="damage-meter lv' + (lv >= 8 ? "-hi" : lv >= 4 ? "-mid" : "-lo") + '"><span>建物のようす</span><b>' + esc(M.visual.DAMAGE_NAMES[lv]) + '</b><span class="damage-meter__cells" aria-label="傷み ' + lv + ' / 10">' + cells + "</span><em>傷み " + lv + "/10</em></div>";
   }
 
+  /* 10年間のお金の流れ：開業準備／営業利益／開館後の投資など */
+  function moneyFlow(result) {
+    var start = D.initialStats.fund, prep = 0, profit = 0, loan = 0;
+    result.steps.forEach(function (st) {
+      st.events.forEach(function (e) {
+        if (e.id === "ev_income") profit += e.delta.fund || 0;
+        else if (st.round <= 6) prep += e.delta.fund || 0;
+      });
+      if (st.delta.debt > 0) loan += st.delta.debt;
+      if (st.round <= 5) prep += (st.delta.fund || 0) - (st.delta.debt > 0 ? st.delta.debt : 0);
+    });
+    result.settlement.ledger.forEach(function (l) { if (l.business) profit += l.value; });
+    var end = result.finalStats.fund, other = end - start - prep - profit - loan;
+    var row = function (label, v, note) {
+      return "<li><span>" + esc(label) + (note ? '<small class="ledger__note">' + esc(note) + "</small>" : "") + '</span><span class="' + (v >= 0 ? "pos" : "neg") + '">' + esc(M.story.money(v, true)) + "</span></li>";
+    };
+    var diff = end - start;
+    return '<ul class="ledger">' +
+      "<li><span>スタート時の資金</span><span>" + esc(M.story.money(start)) + "</span></li>" +
+      row("開館までの準備（建設・設備・採用など）", prep, "第1〜5問") +
+      (loan ? row("銀行からの借入", loan, "あとで利子つきで返済") : "") +
+      row("開館後10年間の営業利益の合計", profit, "入館料・グッズ・飲食の売上 − 運営費") +
+      row("開館後の投資・返済など", other, "第6〜10問、借入金の返済など") +
+      '<li><span><b>10年後の資金</b></span><span class="' + (end >= 0 ? "pos" : "neg") + '"><b>' + esc(M.story.money(end)) + "</b></span></li>" +
+      "</ul>" +
+      '<p class="money-verdict ' + (diff >= 0 ? "up" : "down") + '">' + (diff >= 0
+        ? "スタートの" + esc(M.story.money(start)) + "から <b>" + esc(M.story.money(diff, true)) + "</b>。経営で資金を増やせました！"
+        : "スタートの" + esc(M.story.money(start)) + "から <b>" + esc(M.story.money(diff)) + "</b>。" + (profit > 0 ? "営業では利益が出たものの、投資や返済がそれを上回りました。" : "営業で利益を出せず、資金が減ってしまいました。")) + "</p>";
+  }
+
   function renderResult(result, story, shared) {
     current = { result: result, story: story };
     topbar(false);
@@ -558,8 +588,9 @@
       '<section class="card"><h2 class="section-title">10年間の経営レポート</h2>' + overallHtml(result) + radar(result.finalStats) + statCards(result) +
         '<p class="small-note">評価はS・A・B・C・Dの5段階。※ 数値はゲーム内だけの指標で、現実の水族館の評価ではありません。</p></section>' +
       '<section class="card"><h2 class="section-title">資金余力の推移</h2>' + fundChart(result) +
-        '<p class="small-note" style="margin-top:4px">数字は各問を選んだあとの資金余力。赤いゾーンは赤字です。</p>' +
-        '<h3 class="sub-title">10年後の決算</h3><ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + M.story.money(result.finalStats.fund) + "</span></li></ul></section>" +
+        '<p class="small-note" style="margin-top:4px">数字は各問を選んだあとの資金余力。赤いゾーンはお金が底をついた状態です。開館後は毎年の営業利益が入ります。</p>' +
+        '<h3 class="sub-title">10年間のお金の流れ</h3>' + moneyFlow(result) +
+        '<h3 class="sub-title">10年後の決算（開館8〜10年目）</h3><ul class="ledger">' + ledger + '<li><span><b>最終的な資金余力</b></span><span class="' + (result.finalStats.fund >= 0 ? "pos" : "neg") + '">' + M.story.money(result.finalStats.fund) + "</span></li></ul></section>" +
       '<section class="card"><h2 class="section-title">10年間の物語</h2>' + chapters + "</section>" +
       '<section class="card"><h2 class="section-title">運命を変えた3つの選択</h2>' + decisions + "</section>" +
       whatIfHtml(result) +

@@ -104,7 +104,7 @@
           C: {
             label: "クラゲと深海の幻想展示",
             pros: "写真映えして若い世代に人気",
-            cons: "冷却・水流の特殊設備が必要",
+            cons: "特殊設備で、毎年の維持費が約2億円",
             effects: { fund: -15, pop: 10, research: 5, staff: -5 },
             flags: ["main_deep"],
             feedback: "ふわふわ漂うクラゲと、ふしぎな深海生物。幻想の世界へようこそ。",
@@ -128,7 +128,7 @@
           A: {
             label: "水槽の大きさと迫力",
             pros: "大型アクリルパネルで迫力満点",
-            cons: "アクリルは1枚数億円することも",
+            cons: "大水槽の維持費が毎年約3億円かかる",
             effects: { fund: -20, pop: 12, welfare: -3 },
             flags: ["big_tanks"],
             conditional: [
@@ -381,7 +381,7 @@
           A: {
             label: "営業時間を夜21時まで延長",
             pros: "夜の水族館で売上アップ",
-            cons: "残業が増え、スタッフが疲れる",
+            cons: "残業が増え、光熱費も毎年約1億円増える",
             effects: { fund: 18, pop: 8, staff: -12, welfare: -4 },
             flags: ["extended"],
             conditional: [
@@ -404,7 +404,7 @@
           C: {
             label: "スタッフと設備を増強",
             pros: "スタッフを20人増員",
-            cons: "人件費と設備費が先にかかる",
+            cons: "人件費が毎年約1.5億円増える",
             effects: { fund: -18, staff: 15, pop: 5 },
             flags: ["expanded_staff"],
             removeFlags: ["understaffed"],
@@ -427,7 +427,7 @@
           A: {
             label: "大型の新展示館を建設",
             pros: "新館オープンで話題性バツグン",
-            cons: "完成まで約2年かかる",
+            cons: "維持費が毎年約4億円かかる",
             effects: { fund: -32, pop: 16 },
             flags: ["new_wing"],
             conditional: [
@@ -455,7 +455,7 @@
           C: {
             label: "スタッフ待遇と設備を改善",
             pros: "給料アップと休憩室の改装",
-            cons: "目に見える変化は少ない",
+            cons: "毎年の人件費が約1.5億円増える",
             effects: { fund: -14, staff: 15, welfare: 8, trust: 3 },
             flags: ["care"],
             removeFlags: ["overworked"],
@@ -514,7 +514,7 @@
               A: {
                 label: "研究棟つきの大型館へ拡大",
                 pros: "研究も展示も大きく",
-                cons: "大規模な投資が必要",
+                cons: "維持費が毎年約6億円かかる",
                 effects: { fund: -35, pop: 10, research: 8 },
                 flags: ["mega"],
                 feedback: "研究棟と展示館を備えた、大きな海の学び舎をつくる！",
@@ -545,7 +545,7 @@
               A: {
                 label: "全国区の大型水族館へ拡大",
                 pros: "もっと多くの人に届く",
-                cons: "大規模な投資が必要",
+                cons: "維持費が毎年約6億円かかる",
                 effects: { fund: -35, pop: 16 },
                 flags: ["mega"],
                 feedback: "目指すは日本一の水族館！ 大拡張プロジェクトが始動。",
@@ -576,7 +576,7 @@
               A: {
                 label: "さらに大きな水族館へ",
                 pros: "もっと多くの人に届く",
-                cons: "大規模な投資が必要",
+                cons: "維持費が毎年約6億円かかる",
                 effects: { fund: -35, pop: 14 },
                 flags: ["mega"],
                 feedback: "さらなる成長へ！ 新しい展示エリアの建設が決まった。",
@@ -1143,6 +1143,30 @@
         mood: "calm",
         keyStats: ["staff","welfare"],
         summary: "設備も管理も業者まかせ。気づけば、生き物のことをよく知るスタッフがいなくなっていた。",
+      },
+      idealist: {
+        type: "ビターエンド",
+        name: "生き物ファーストの水族館エンド",
+        title: "胸は張れる、でも金庫は軽い",
+        mood: "dusk",
+        keyStats: ["fund", "welfare", "trust"],
+        summary: "生き物や地域のためにお金を惜しまなかった。誇れる水族館になったけれど、資金は最初より減ってしまった。",
+      },
+      dreamlab: {
+        type: "ビターエンド",
+        name: "研究に夢を賭けた水族館エンド",
+        title: "論文は増えた、お金は減った",
+        mood: "dusk",
+        keyStats: ["research", "fund"],
+        summary: "研究では大きな成果をあげた。でも研究費がかさみ、資金は最初より減ってしまった。",
+      },
+      devoted: {
+        type: "ビターエンド",
+        name: "地域に尽くした水族館エンド",
+        title: "ありがとうは、たくさん集まった",
+        mood: "warm",
+        keyStats: ["trust", "fund"],
+        summary: "地域の人たちのために尽くし、たくさん感謝された。でも資金は最初より減ってしまった。",
       },
       steady: {
         type: "ノーマルエンド",
