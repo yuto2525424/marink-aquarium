@@ -383,6 +383,8 @@
       reorg: endingId === "reorg",
       crowd: clamp(Math.round((s.pop - 20) / 8), 0, 10),
       mood: D.endings[endingId].mood,
+      night: !!f.extended,
+      flags: Object.keys(f).filter(function (k) { return f[k]; }),
     };
   }
 
@@ -455,7 +457,31 @@
     return out;
   }
 
+  /*
+   * ゲーム途中の水族館の絵（選んだあとの変化アニメーション用）
+   * まだ決めていない部分は描かない：立地なし＝建設予定地、展示なし＝ふつうの建物
+   */
+  function preview(input) {
+    var h = parseHistory(input || []);
+    if (!h) throw new Error("不正な選択履歴です: " + input);
+    var st = h.length ? simulate(h).state : initialState();
+    var f = st.flags;
+    var cfg = aquariumConfig(st, "steady");
+    cfg.location = f.loc_tourist ? "tourist" : f.loc_nature ? "nature" : f.loc_campus ? "campus" : null;
+    cfg.main = f.main_big ? "big" : f.main_small ? "small" : f.main_deep ? "deep" : null;
+    cfg.staffStyle = f.staff_vet ? "veteran" : f.staff_rookie ? "rookie" : f.staff_elite ? "elite" : null;
+    cfg.empty = !cfg.location;
+    cfg.opened = !!(f.price_high || f.price_mid || f.price_low);
+    if (!cfg.opened) cfg.crowd = 0;
+    cfg.damage = 0; cfg.closed = false; cfg.gag = false; cfg.reorg = false; cfg.endingId = null;
+    cfg.mood = f.extended ? "dusk" : "calm";
+    cfg.night = !!f.extended;
+    cfg.flags = Object.keys(f).filter(function (k) { return f[k]; });
+    return cfg;
+  }
+
   M.engine = {
+    preview: preview,
     VERSION: D.version,
     STAT_KEYS: STAT_KEYS,
     CHOICES: CHOICES,

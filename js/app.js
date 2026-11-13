@@ -281,6 +281,11 @@
   }
 
   function renderEvents(next) {
+    if (!next.__played) {
+      next.__played = true;
+      playEventCuts(history.slice(), next.events).then(function () { renderEvents(next); });
+      return;
+    }
     var crisis = next.events.some(function (e) { return e.mood === "crisis"; });
     var bad = next.events.some(function (e) { return e.mood === "bad"; });
     var cards = next.events.map(function (e) {
@@ -293,7 +298,6 @@
       '<p class="tap-hint">画面のどこをタップしても進めます</p>',
       crisis ? "mood-crisis-screen" : ""
     );
-    S.play(crisis ? "crisis" : bad ? "bad" : "good");
     tapAnywhere([document.body], function () { S.play("tap"); renderQuestion(next.question); });
   }
 
@@ -352,8 +356,123 @@
       var step = sim.steps[sim.steps.length - 1];
       $("progressFill").style.width = (history.length / 10) * 100 + "%";
       hud(step.statsAfter, true);
-      openSheet(step);
+      playCutscene(history.slice(0, -1), history.slice(), step).then(function () { openSheet(step); });
     }, 380);
+  }
+
+  /* ───── 選んだあとの「水族館が変わっていく」演出（タップでは飛ばせない短い映像） ───── */
+  // 新しく付いたフラグ → 演出の種類と、画面に出す一言
+  var CUT = {
+    loc_tourist: ["build", "海沿いに水族館を建設中…"], loc_nature: ["build", "自然の海辺に水族館を建設中…"], loc_campus: ["build", "大学の街に水族館を建設中…"],
+    main_big: ["swim-big", "大型魚たちがやってきた！"], main_small: ["swim-small", "個性派の魚たちがやってきた！"], main_deep: ["swim-jelly", "クラゲたちがやってきた！"],
+    big_tanks: ["grow", "巨大水槽を建設中…"], variety: ["swim-small", "たくさんの生き物が仲間入り！"], reliable: ["sparkle", "設備をしっかり整えた！"],
+    loan: ["coins", "銀行から資金を調達！"], downsized: ["shrink", "展示を小さくして開館準備…"], delayed: ["time", "時間をかけて資金集め…"],
+    staff_vet: ["staff", "ベテラン飼育員が仲間入り！"], staff_rookie: ["staff", "新人たちが仲間入り！"], staff_elite: ["staff", "専門家チームが仲間入り！"],
+    price_high: ["open", "いよいよ開館！"], price_mid: ["open", "いよいよ開館！"], price_low: ["open", "いよいよ開館！"],
+    renewed: ["repair", "設備を全面リニューアル中…"], paused: ["repair", "展示を休んで修繕中…"], contract: ["repair", "専門業者がメンテナンス中…"],
+    extended: ["night", "夜の水族館がオープン！"], reservation: ["crowd", "予約制でゆったり見学！"], expanded_staff: ["staff", "スタッフを増やした！"],
+    new_wing: ["annex", "新しい展示館を建設中…"], conservation: ["annex", "研究・保全の施設を建設中…"], care: ["hearts", "スタッフも生き物も笑顔に！"],
+    mega: ["grow", "水族館を大きく拡大中…"], shrink_end: ["shrink", "身の丈に合った規模へ…"], alliance: ["annex", "仲間の水族館と手を組んだ！"], keep: ["sparkle", "今の水族館をみがき上げる！"],
+  };
+  var CUT_ORDER = ["loc_tourist", "loc_nature", "loc_campus", "main_big", "main_small", "main_deep", "mega", "shrink_end", "new_wing", "conservation", "alliance", "big_tanks", "variety", "reliable", "loan", "downsized", "delayed",
+    "staff_vet", "staff_rookie", "staff_elite", "price_high", "price_mid", "price_low", "renewed", "paused", "contract", "extended", "reservation", "expanded_staff", "care", "keep"];
+  var CUT_MS = 2600;
+
+  function cutKind(before, after) {
+    var added = after.flags.filter(function (f) { return before.flags.indexOf(f) < 0; });
+    for (var i = 0; i < CUT_ORDER.length; i++) if (added.indexOf(CUT_ORDER[i]) >= 0) return CUT[CUT_ORDER[i]];
+    return ["sparkle", "水族館が少し変わった！"];
+  }
+
+  function cutParticles(kind) {
+    var out = "", i;
+    if (kind === "coins-out") for (i = 0; i < 10; i++) out += '<i class="cut-coin cut-coin--out" style="left:' + (30 + i * 4.5) + "%;animation-delay:" + (0.2 + (i % 5) * 0.1).toFixed(2) + 's"></i>';
+    if (kind === "rain" || kind === "storm") {
+      out += '<i class="cut-cloud" style="left:8%"></i><i class="cut-cloud" style="left:46%;animation-delay:.15s"></i><i class="cut-cloud" style="left:72%;animation-delay:.3s"></i>';
+      for (i = 0; i < 26; i++) out += '<i class="cut-drop" style="left:' + ((i * 37) % 100) + "%;animation-delay:" + (0.4 + (i % 9) * 0.11).toFixed(2) + 's"></i>';
+    }
+    if (kind === "storm") out += '<i class="cut-flash"></i>';
+    if (kind === "bus") out += '<div class="cut-bus"><svg viewBox="0 0 60 30"><rect x="2" y="4" width="54" height="20" rx="5" fill="#f3c74a"/><rect x="6" y="8" width="9" height="7" rx="1.5" fill="#cfeaf2"/><rect x="18" y="8" width="9" height="7" rx="1.5" fill="#cfeaf2"/><rect x="30" y="8" width="9" height="7" rx="1.5" fill="#cfeaf2"/><rect x="43" y="8" width="10" height="11" rx="1.5" fill="#cfeaf2"/><rect x="2" y="17" width="54" height="2" fill="#e09a3a"/><circle cx="14" cy="25" r="4" fill="#3d4a5c"/><circle cx="44" cy="25" r="4" fill="#3d4a5c"/></svg></div>';
+    if (kind === "coins") for (i = 0; i < 14; i++) out += '<i class="cut-coin" style="left:' + (8 + i * 6.3) + "%;animation-delay:" + (0.25 + (i % 5) * 0.12).toFixed(2) + 's"></i>';
+    if (kind === "hearts") for (i = 0; i < 10; i++) out += '<i class="cut-heart" style="left:' + (12 + i * 8) + "%;animation-delay:" + (0.3 + (i % 4) * 0.18).toFixed(2) + 's">♥</i>';
+    if (kind === "sparkle" || kind === "repair" || kind === "grow" || kind === "annex") for (i = 0; i < 9; i++) out += '<i class="cut-star" style="left:' + (18 + (i * 37) % 64) + "%;top:" + (18 + (i * 23) % 46) + "%;animation-delay:" + (0.6 + i * 0.12).toFixed(2) + 's">✦</i>';
+    if (kind === "build" || kind === "annex" || kind === "grow") for (i = 0; i < 8; i++) out += '<i class="cut-dust" style="left:' + (30 + i * 5.5) + "%;animation-delay:" + (0.3 + (i % 4) * 0.15).toFixed(2) + 's"></i>';
+    if (kind === "swim-big") out += '<div class="cut-swimmer"><svg viewBox="-40 -20 90 40"><path d="M-34 0 C-30 -9 12 -10 28 -2 L42 -12 L38 0 L42 10 L28 2 C12 9 -30 9 -34 0 Z" fill="#4f7fa8"/><path d="M-2 -7 L4 -16 L10 -7 Z" fill="#4f7fa8"/><g fill="#fff" opacity=".85"><circle cx="-20" cy="-2" r="1.4"/><circle cx="-12" cy="1" r="1.4"/><circle cx="-4" cy="-3" r="1.4"/><circle cx="4" cy="0" r="1.4"/><circle cx="12" cy="-2" r="1.4"/></g><circle cx="-27" cy="-1" r="1.6" fill="#13304f"/></svg></div>';
+    if (kind === "swim-small") for (i = 0; i < 6; i++) out += '<div class="cut-fish" style="top:' + (30 + i * 9) + "%;animation-delay:" + (i * 0.14).toFixed(2) + 's"><svg viewBox="-12 -8 30 16"><path d="M-10 0 C-5 -7 7 -7 10 0 C7 7 -5 7 -10 0 Z" fill="' + ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63", "#7cc0cf", "#c7a6d9"][i] + '"/><path d="M9 0 L16 -6 L15 0 L16 6 Z" fill="' + ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63", "#7cc0cf", "#c7a6d9"][i] + '"/><circle cx="-5" cy="-1.5" r="1.3" fill="#2d3b55"/></svg></div>';
+    if (kind === "swim-jelly") for (i = 0; i < 5; i++) out += '<div class="cut-jelly" style="left:' + (14 + i * 17) + "%;animation-delay:" + (i * 0.15).toFixed(2) + 's"><svg viewBox="-10 -12 20 26"><path d="M-8 0 C-8 -11 8 -11 8 0 Q4 2 0 0 Q-4 2 -8 0 Z" fill="' + ["#f7c6e0", "#c9e9ff", "#e6d4ff"][i % 3] + '"/><path d="M-5 1 q-2 5 0 10 M0 1 q2 6 0 12 M5 1 q2 5 0 10" stroke="' + ["#f7c6e0", "#c9e9ff", "#e6d4ff"][i % 3] + '" stroke-width="1" fill="none"/></svg></div>';
+    return out;
+  }
+
+  /* 演出を1つ流す（共通）
+   * o: { before, after, kind, label, caption, ms, newFlags } */
+  function showCut(o) {
+    return new Promise(function (resolve) {
+      var sign = aqName || "わたしの水族館";
+      var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var ms = reduce ? 1200 : (o.ms || CUT_MS);
+      var el = document.createElement("div");
+      el.className = "cutscene cut-" + o.kind + (reduce ? " cut-reduce" : "");
+      el.style.setProperty("--cut-ms", ms + "ms");
+      el.setAttribute("role", "status");
+      el.setAttribute("aria-live", "polite");
+      el.innerHTML =
+        '<div class="cutscene__frame">' +
+          '<div class="cutscene__layer cutscene__before">' + M.visual.render(o.before, { signText: sign, seed: 11, id: "cb", label: "変わる前の水族館" }) + "</div>" +
+          '<div class="cutscene__layer cutscene__after">' + M.visual.render(o.after, { signText: sign, seed: 11, id: "ca", label: "変わったあとの水族館" }) + "</div>" +
+          '<div class="cutscene__fx">' + cutParticles(o.kind) + "</div>" +
+        "</div>" +
+        (o.tag ? '<span class="cutscene__tag mood-' + o.mood + '">' + esc(o.tag) + "</span>" : "") +
+        '<p class="cutscene__label">' + esc(o.label) + "</p>" +
+        '<p class="cutscene__caption">' + esc(o.caption) + "</p>" +
+        '<div class="cutscene__bar"><span></span></div>';
+      // 新しく付いた外観パーツだけを「ポン」と出す
+      (o.newFlags || []).forEach(function (f) {
+        el.querySelectorAll(".cutscene__after .mk-x-" + f).forEach(function (n) { n.classList.add("cut-new"); });
+      });
+      // 演出中はタップを受け付けない（下の画面にも届かない）
+      ["click", "touchstart", "touchend", "pointerdown"].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); if (t === "click") e.preventDefault(); }, { passive: t !== "click" }); });
+      document.body.appendChild(el);
+      if (o.sound) S.play(o.sound);
+      setTimeout(function () {
+        el.classList.add("is-leaving");
+        setTimeout(function () { el.remove(); resolve(); }, 280);
+      }, ms);
+    });
+  }
+
+  function playCutscene(prevHistory, nextHistory, step) {
+    var before, after;
+    try { before = E.preview(prevHistory); after = E.preview(nextHistory); } catch (e) { return Promise.resolve(); }
+    var k = cutKind(before, after), kind = k[0];
+    var added = after.flags.filter(function (f) { return before.flags.indexOf(f) < 0; });
+    return showCut({ before: before, after: after, kind: kind, label: step.label, caption: k[1], newFlags: added,
+      sound: kind === "build" || kind === "annex" || kind === "grow" || kind === "repair" ? "bubble" : null });
+  }
+
+  /* 途中のイベント（「第○問の前に…」）の演出 */
+  var EV_CUT = {
+    ev_loan_payment: "coins-out", ev_delay_fans: "crowd", ev_nature_access: "bus", ev_veteran_notice: "sparkle", ev_reliable_saves: "sparkle",
+    ev_bigfish_crowd: "crowd", ev_bigfish_planned: "swim-big", ev_rookie_growth: "staff", ev_tourist_season: "crowd", ev_overwork: "rain",
+    ev_deep_breeding: "swim-jelly", ev_small_fans: "crowd", ev_campus_collab: "sparkle", ev_crisis: "storm",
+  };
+  function eventCaption(e) {
+    var d = e.delta || {}, parts = [];
+    if (d.fund) parts.push("資金 " + M.story.money(d.fund, true));
+    ["pop", "welfare", "staff", "research", "trust"].forEach(function (k) { if (d[k]) parts.push(D.statLabels[k] + " " + (d[k] > 0 ? "+" : "") + d[k]); });
+    return parts.join("　") || String(e.text || "").split("。")[0];
+  }
+  function playEventCuts(history, events) {
+    var cfg;
+    try { cfg = E.preview(history); } catch (e) { return Promise.resolve(); }
+    var list = events.slice(0, 3);
+    var tags = { good: "うれしいニュース", bad: "ちょっと困った", crisis: "緊急事態", info: "お知らせ" };
+    return list.reduce(function (p, e) {
+      return p.then(function () {
+        var kind = e.id === "ev_income" ? ((e.delta.fund || 0) >= 0 ? "coins" : "rain") : EV_CUT[e.id] || (e.mood === "bad" ? "rain" : "sparkle");
+        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2100,
+          sound: e.mood === "crisis" ? "crisis" : e.mood === "bad" || kind === "rain" ? "bad" : "good" });
+      });
+    }, Promise.resolve());
   }
 
   function openSheet(step) {

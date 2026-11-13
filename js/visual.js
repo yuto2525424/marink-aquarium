@@ -58,6 +58,11 @@
   /* ── 背景（立地） ── */
   function background(cfg, P, R) {
     var out = "";
+    if (!cfg.location) {
+      out += '<path d="M0 196 C90 178 170 190 230 196 C300 184 350 182 400 192 L400 215 L0 215 Z" fill="#cfe4c4"/>';
+      out += tree(40, 208, 0.9) + tree(360, 208, 1) + tree(384, 210, 0.8);
+      return out;
+    }
     if (cfg.location === "tourist") {
       // 観覧車・ホテル・ヤシの木
       out += '<g opacity=".75"><circle cx="64" cy="150" r="34" fill="none" stroke="#e8a1a6" stroke-width="2.5"/>';
@@ -109,7 +114,11 @@
     var dark = cfg.closed || cfg.damage >= 7;
     var glass = dark ? "#8a97ad" : "url(#glass)";
 
-    if (cfg.main === "big") {
+    if (!cfg.main) {
+      out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + W + '" height="' + H + '" rx="8" fill="#f6f2ea"/>';
+      out += '<path d="M' + (x0 - 6) + " " + (gy - H + 2) + " L200 " + (gy - H - 22) + " L" + (x0 + W + 6) + " " + (gy - H + 2) + ' Z" fill="#8fc3cf"/>';
+      for (var pw = 0; pw < 4; pw++) out += '<rect x="' + (x0 + 14 + pw * (W - 28) / 3 - 9) + '" y="' + (gy - H * 0.7) + '" width="18" height="14" rx="3" fill="' + glass + '"/>';
+    } else if (cfg.main === "big") {
       out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + W + '" height="' + H + '" rx="10" fill="#f8f4ec"/>';
       out += '<path d="M' + (x0 - 6) + " " + (gy - H + 4) + " C" + (x0 + W * 0.25) + " " + (gy - H - 22) + " " + (x0 + W * 0.6) + " " + (gy - H + 14) + " " + (x0 + W + 6) + " " + (gy - H - 8) + " L" + (x0 + W + 6) + " " + (gy - H + 8) + " L" + (x0 - 6) + " " + (gy - H + 12) + ' Z" fill="#5fb0c2"/>';
       var gw = W * 0.62, gx = 200 - gw / 2, gh = H * 0.62, gyy = gy - H * 0.78;
@@ -154,6 +163,119 @@
     }
     if (cfg.damage >= 9) out += "</g>";
     return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw };
+  }
+
+  /* ───── 選択ごとに増える外観パーツ（1回選ぶたびに、見た目がどこか変わる） ─────
+   * それぞれ <g class="mk-x mk-x-フラグ名"> で包む。変化アニメーションで「新しく付いた部分」だけを目立たせるため */
+  function has(cfg, f) { return !!(cfg.flags && cfg.flags.indexOf(f) >= 0); }
+  function xg(flag, svg) { return '<g class="mk-x mk-x-' + flag + '">' + svg + "</g>"; }
+  function balloon(x, y, c) {
+    return '<path d="M' + x + " " + (y + 9) + " q-2 8 1 16" + '" stroke="#9aa6b4" stroke-width=".6" fill="none"/><ellipse cx="' + x + '" cy="' + y + '" rx="5" ry="6.2" fill="' + c + '"/><ellipse cx="' + (x - 1.6) + '" cy="' + (y - 2) + '" rx="1.3" ry="1.8" fill="#fff" opacity=".6"/>';
+  }
+  function extras(cfg, b) {
+    if (cfg.closed) return "";
+    var gy = 214, x0 = b.x0, W = b.W, H = b.H, out = "", i, s;
+    // 第3問：たくさんの種類 → 外壁に色とりどりの小窓
+    if (has(cfg, "variety")) {
+      s = "";
+      var cols = ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63", "#7cc0cf", "#c7a6d9"];
+      for (i = 0; i < 8; i++) {
+        var px = i < 4 ? x0 + 12 + i * ((186 - x0 - 16) / 4) : 216 + (i - 4) * ((x0 + W - 220) / 4);
+        s += '<circle cx="' + px.toFixed(1) + '" cy="' + (gy - 9) + '" r="3.6" fill="' + cols[i % 6] + '" stroke="#fff" stroke-width="1"/>';
+      }
+      out += xg("variety", s);
+    }
+    // 第3問：設備の信頼性 → 屋上のろ過タンクと配管
+    if (has(cfg, "reliable")) {
+      out += xg("reliable", '<rect x="' + (x0 + 8) + '" y="' + (gy - H - 16) + '" width="14" height="18" rx="5" fill="#9cc7d6" stroke="#6f9fb2" stroke-width="1"/><path d="M' + (x0 + 22) + " " + (gy - H - 6) + " h10 v8" + '" stroke="#8a9aa8" stroke-width="2" fill="none"/><rect x="' + (x0 + 11) + '" y="' + (gy - H - 12) + '" width="8" height="2" fill="#fff" opacity=".7"/>');
+    }
+    // 第4問：融資で予定通り開館 → 入口の両側に風船
+    if (has(cfg, "loan")) {
+      out += xg("loan", balloon(176, 186, "#f2a79c") + balloon(170, 192, "#7cc0cf") + balloon(181, 194, "#f3d27a") + balloon(224, 186, "#9ccf9f") + balloon(230, 192, "#f2a79c") + balloon(219, 194, "#c7a6d9"));
+    }
+    // 第4問：開館を延期 → 「祝 開館」の垂れ幕
+    if (has(cfg, "delayed")) {
+      out += xg("delayed", '<rect x="' + (x0 + W - 22) + '" y="' + (gy - H + 8) + '" width="13" height="40" fill="#fff6e8" stroke="#e8a1a6" stroke-width="1"/><text x="' + (x0 + W - 15.5) + '" y="' + (gy - H + 20) + '" font-size="7" font-weight="700" text-anchor="middle" fill="#d9605a" font-family="Zen Maru Gothic, sans-serif"><tspan x="' + (x0 + W - 15.5) + '" dy="0">祝</tspan><tspan x="' + (x0 + W - 15.5) + '" dy="9">開</tspan><tspan x="' + (x0 + W - 15.5) + '" dy="9">館</tspan></text>');
+    }
+    // 第6問：入館料 → 入口まわりが変わる
+    if (has(cfg, "price_high")) {
+      out += xg("price_high", '<path d="M192 214 L208 214 L216 230 L184 230 Z" fill="#d9605a" opacity=".85"/>' +
+        '<g><rect x="179" y="196" width="2" height="18" fill="#6d5a4a"/><circle cx="180" cy="195" r="3.5" fill="#ffe7a3"/><rect x="219" y="196" width="2" height="18" fill="#6d5a4a"/><circle cx="220" cy="195" r="3.5" fill="#ffe7a3"/></g>');
+    }
+    if (has(cfg, "price_mid")) {
+      out += xg("price_mid", '<rect x="222" y="198" width="18" height="16" rx="2" fill="#fdf6ec" stroke="#c9b9a0" stroke-width=".6"/><path d="M220 198 h22 l-3 -6 h-16 Z" fill="#7cc0cf"/><rect x="226" y="202" width="10" height="6" rx="1" fill="#bfe3ee"/><text x="231" y="212.5" font-size="3.6" text-anchor="middle" fill="#2f4a6b" font-family="sans-serif">TICKET</text>');
+    }
+    if (has(cfg, "price_low")) {
+      s = '<rect x="236" y="204" width="26" height="12" rx="1.5" fill="#fff8ec"/>';
+      for (i = 0; i < 5; i++) s += '<path d="M' + (234 + i * 6) + " 204 l6 0 l-1 -6 l-4 0 Z" + '" fill="' + (i % 2 ? "#fff" : "#e9827a") + '"/>';
+      s += '<circle cx="243" cy="210" r="2.4" fill="#f3c74a"/><circle cx="250" cy="210" r="2.4" fill="#f4a35d"/><circle cx="257" cy="210" r="2.4" fill="#f3c74a"/>';
+      out += xg("price_low", s);
+    }
+    // 第7問：設備トラブルへの対応
+    if (has(cfg, "renewed")) {
+      out += xg("renewed", '<g opacity=".55"><path d="M' + (x0 + W * 0.15) + " " + (gy - 4) + " l14 -" + (H - 10) + " l7 0 l-14 " + (H - 10) + ' Z" fill="#fff"/><path d="M' + (x0 + W * 0.72) + " " + (gy - 4) + " l10 -" + (H - 12) + " l4 0 l-10 " + (H - 12) + ' Z" fill="#fff"/></g>');
+    }
+    if (has(cfg, "paused")) {
+      out += xg("paused", '<g><rect x="' + (x0 + W * 0.66) + '" y="' + (gy - H * 0.42) + '" width="22" height="14" rx="1.5" fill="#e3ecf2" stroke="#a8b8c6" stroke-width=".8"/><g fill="#a8b8c6"><circle cx="' + (x0 + W * 0.66 + 3) + '" cy="' + (gy - H * 0.42 + 3) + '" r=".9"/><circle cx="' + (x0 + W * 0.66 + 19) + '" cy="' + (gy - H * 0.42 + 3) + '" r=".9"/><circle cx="' + (x0 + W * 0.66 + 3) + '" cy="' + (gy - H * 0.42 + 11) + '" r=".9"/><circle cx="' + (x0 + W * 0.66 + 19) + '" cy="' + (gy - H * 0.42 + 11) + '" r=".9"/></g></g>');
+    }
+    if (has(cfg, "contract")) {
+      out += xg("contract", '<g transform="translate(272 214)"><rect x="0" y="-13" width="30" height="11" rx="2" fill="#f6f6f2" stroke="#9aa6b4" stroke-width=".6"/><path d="M30 -10 h6 l3 4 v4 h-9 Z" fill="#cfe4ee" stroke="#9aa6b4" stroke-width=".6"/><rect x="2" y="-10" width="26" height="3" fill="#4fa6b8"/><circle cx="7" cy="-1" r="2.6" fill="#3d4a5c"/><circle cx="31" cy="-1" r="2.6" fill="#3d4a5c"/></g>');
+    }
+    // 第8問：SNSのバズへの対応
+    if (has(cfg, "reservation")) {
+      s = "";
+      for (i = 0; i < 4; i++) s += '<rect x="' + (222 + i * 9) + '" y="214" width="1.4" height="9" fill="#c9a24a"/>';
+      s += '<path d="M222.7 216 q4.5 3 9 0 q4.5 3 9 0 q4.5 3 9 0" stroke="#d9605a" stroke-width="1.2" fill="none"/>';
+      out += xg("reservation", s);
+    }
+    if (has(cfg, "expanded_staff")) {
+      var sx = Math.min(368, x0 + W + 52);
+      out += xg("expanded_staff", '<rect x="' + sx + '" y="' + (gy - 24) + '" width="26" height="24" rx="2" fill="#f3efe6"/><path d="M' + (sx - 2) + " " + (gy - 24) + " l15 -9 l15 9 Z" + '" fill="#a9c6a0"/><rect x="' + (sx + 10) + '" y="' + (gy - 11) + '" width="6" height="11" fill="#c9b18e"/><text x="' + (sx + 13) + '" y="' + (gy - 15) + '" font-size="4" text-anchor="middle" fill="#2f4a6b" font-family="sans-serif">STAFF</text>');
+    }
+    // 第9問：待遇と設備の改善 → 花だんとベンチ
+    if (has(cfg, "care")) {
+      s = "";
+      var fc = ["#f2a79c", "#f3d27a", "#c7a6d9", "#ffffff"];
+      for (i = 0; i < 12; i++) {
+        var fx = i < 6 ? x0 + 6 + i * 6 : 216 + (i - 6) * 6;
+        if (fx > 186 && fx < 214) continue;
+        s += '<path d="M' + fx + " 216 v-3" + '" stroke="#79b58e" stroke-width="1"/><circle cx="' + fx + '" cy="212.5" r="1.9" fill="' + fc[i % 4] + '"/>';
+      }
+      s += '<g transform="translate(' + (x0 - 18) + ' 220)"><rect x="0" y="-5" width="14" height="2" rx="1" fill="#b08a6a"/><rect x="0" y="-9" width="14" height="2" rx="1" fill="#b08a6a"/><rect x="1" y="-3" width="1.4" height="4" fill="#8a6a50"/><rect x="11.6" y="-3" width="1.4" height="4" fill="#8a6a50"/></g>';
+      out += xg("care", s);
+    }
+    // 第10問：今の体制をみがく → 看板の上に星のエンブレム
+    if (has(cfg, "keep") && b.sy) {
+      var cy = b.sy - 16;
+      out += xg("keep", '<path d="M200 ' + (cy - 7) + " l2.2 4.6 l5 .7 l-3.6 3.5 l.9 5 l-4.5 -2.4 l-4.5 2.4 l.9 -5 l-3.6 -3.5 l5 -.7 Z" + '" fill="#f3c74a" stroke="#d9a42e" stroke-width=".6"/>');
+    }
+    // 第10問：他館と連携 → 小さな国旗の列
+    if (has(cfg, "alliance")) {
+      s = "";
+      var fl = [["#ffffff", "#d9605a"], ["#3f6fb5", "#ffffff"], ["#2f9e6a", "#f3d27a"]];
+      for (i = 0; i < 3; i++) {
+        var ax = 26 + i * 14;
+        s += '<rect x="' + ax + '" y="190" width="1.2" height="26" fill="#9aa6b4"/><rect x="' + (ax + 1.2) + '" y="190" width="10" height="7" fill="' + fl[i][0] + '" stroke="#c9d3dc" stroke-width=".4"/><circle cx="' + (ax + 6.2) + '" cy="193.5" r="2" fill="' + fl[i][1] + '"/>';
+      }
+      out += xg("alliance", s);
+    }
+    return out;
+  }
+
+  function nightLights(cfg, b) {
+    if (!cfg.night || cfg.closed) return "";
+    var out = "", y = 214 - b.H - 4;
+    for (var i = 0; i <= 10; i++) out += '<circle cx="' + (b.x0 + (b.W / 10) * i).toFixed(1) + '" cy="' + (y + Math.sin(i / 10 * Math.PI) * 6).toFixed(1) + '" r="1.8" fill="#ffe7a3"/>';
+    return out;
+  }
+
+  function plannedSite() {
+    var out = '<g class="mk-site">';
+    for (var i = 0; i < 9; i++) out += '<rect x="' + (128 + i * 18) + '" y="198" width="3" height="18" fill="#c9b18e"/>';
+    out += '<rect x="126" y="202" width="150" height="3" fill="#d8c3a0"/><rect x="126" y="209" width="150" height="3" fill="#d8c3a0"/>';
+    out += '<rect x="168" y="150" width="64" height="34" rx="4" fill="#fffaf0" stroke="#c9b18e" stroke-width="1.5"/><rect x="198" y="184" width="4" height="16" fill="#a98568"/>';
+    out += '<text x="200" y="163" font-size="8" font-weight="700" text-anchor="middle" fill="#2f4a6b" font-family="Zen Maru Gothic, sans-serif">水族館</text><text x="200" y="176" font-size="8" font-weight="700" text-anchor="middle" fill="#c0645a" font-family="Zen Maru Gothic, sans-serif">建設予定地</text></g>';
+    return out;
   }
 
   function annexes(cfg, b) {
@@ -207,7 +329,7 @@
   }
 
   function staff(cfg) {
-    if (cfg.closed || cfg.damage >= 7) return "";
+    if (cfg.closed || cfg.damage >= 7 || !cfg.staffStyle) return "";
     var gy = 224, out = "";
     var conf = { veteran: { n: 2, coat: "#4f7fa8", hat: true }, rookie: { n: 5, coat: "#7cc0cf", hat: false }, elite: { n: 2, coat: "#ffffff", hat: false } }[cfg.staffStyle];
     for (var i = 0; i < conf.n; i++) {
@@ -394,11 +516,16 @@
       '<filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8"/><feColorMatrix values="0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0 0.35  0 0 0 0.08 0"/></filter>' +
       "</defs>";
     // ID衝突を避けるため接頭辞をつける
-    var body = sky(cfg, P, R) + confetti(cfg, R) +
-      '<g filter="url(#wc)">' + background(cfg, P, R) +
-      '<path d="M0 212 C100 206 300 206 400 212 L400 232 L0 232 Z" fill="' + (cfg.location === "nature" ? "#efe3c8" : "#f1e6d0") + '"/>';
-    var b = mainBuilding(cfg, P, opts);
-    body += annexes(cfg, b) + b.svg + damageLayer(cfg, b, R) + "</g>" + staff(cfg) + people(cfg, R) + sea(cfg, P, R);
+    var body = '<g class="mk-sky">' + sky(cfg, P, R) + confetti(cfg, R) + "</g>" +
+      '<g filter="url(#wc)"><g class="mk-bg">' + background(cfg, P, R) +
+      '<path d="M0 212 C100 206 300 206 400 212 L400 232 L0 232 Z" fill="' + (cfg.location === "nature" ? "#efe3c8" : "#f1e6d0") + '"/></g>';
+    if (cfg.empty) {
+      body += plannedSite() + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
+    } else {
+      var b = mainBuilding(cfg, P, opts);
+      body += '<g class="mk-annex">' + annexes(cfg, b) + "</g>" + '<g class="mk-bldg">' + b.svg + damageLayer(cfg, b, R) + nightLights(cfg, b) + "</g>" + '<g class="mk-extra">' + extras(cfg, b) + "</g></g>" +
+        '<g class="mk-staff">' + staff(cfg) + "</g>" + '<g class="mk-people">' + people(cfg, R) + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
+    }
     if (cfg.renewed && !cfg.closed) body += '<g fill="#fffbe0"><path d="M150 140 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z"/><path d="M262 128 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 Z"/></g>';
     if (cfg.closed || cfg.damage >= 8) body += '<rect width="400" height="300" fill="#2b3557" opacity="' + (0.16 + Math.max(0, cfg.damage - 8) * 0.07).toFixed(2) + '"/>';
     else if (cfg.damage >= 1) body += '<rect width="400" height="300" fill="#6b6f7d" opacity="' + (0.025 * cfg.damage).toFixed(3) + '"/>';
