@@ -377,12 +377,6 @@
   var CUT_ORDER = ["loc_tourist", "loc_nature", "loc_campus", "main_big", "main_small", "main_deep", "mega", "shrink_end", "new_wing", "conservation", "alliance", "big_tanks", "variety", "reliable", "loan", "downsized", "delayed",
     "staff_vet", "staff_rookie", "staff_elite", "price_high", "price_mid", "price_low", "renewed", "paused", "contract", "extended", "reservation", "expanded_staff", "care", "keep"];
   var CUT_MS = 3200;
-  // 画面いっぱいに出る効果音の文字（やりすぎなくらい派手に）
-  var STAMP = {
-    build: "ドドーン！", grow: "ズズーン！", shrink: "しゅるる〜", annex: "ドーン！", "swim-big": "ザッパーン！", "swim-small": "スイスイ〜！", "swim-jelly": "ふわわ〜ん",
-    staff: "ようこそ！", open: "グランドオープン！", crowd: "ワイワイ！", repair: "トンテンカン！", night: "キラッキラ〜！", hearts: "ほっこり♪", sparkle: "ピカーン！",
-    coins: "ジャラジャラ！", "coins-out": "チャリーン…", time: "じっくり…", rain: "ザーザー…", storm: "ゴロゴロ…!!", bus: "ブロロ〜",
-  };
   var CALM = { shrink: 1, "coins-out": 1, time: 1, rain: 1, storm: 1, bus: 1, "swim-jelly": 1 };
 
   function cutKind(before, after) {
@@ -428,7 +422,6 @@
         '<div class="cutscene__frame">' +
           '<div class="cutscene__layer cutscene__before">' + M.visual.render(o.before, { signText: sign, seed: 11, id: "cb", label: "変わる前の水族館" }) + "</div>" +
           '<div class="cutscene__layer cutscene__after">' + M.visual.render(o.after, { signText: sign, seed: 11, id: "ca", label: "変わったあとの水族館" }) + "</div>" +
-          (STAMP[o.kind] ? '<div class="cut-stamp' + (CALM[o.kind] ? " cut-stamp--calm" : "") + '">' + esc(o.stamp || STAMP[o.kind]) + "</div>" : "") +
           (CALM[o.kind] ? "" : '<div class="cut-burst">' + confettiBurst() + '</div><i class="cut-impact"></i>') +
           '<div class="cutscene__fx">' + cutParticles(o.kind) + (o.extraClass && o.extraClass.indexOf("cut-big") >= 0 ? cutParticles("fireworks") : "") + "</div>" +
         "</div>" +
