@@ -350,16 +350,19 @@
     return clamp(lv, 1, 7);
   }
 
+  var GRAND = {
+    loc_tourist: 1, loc_nature: -1, main_big: 1, main_small: -1, big_tanks: 1, variety: 0.5, downsized: -1.5, loan: 0.5,
+    price_high: 0.5, price_low: 0.5, renewed: 0.5, extended: 0.5, expanded_staff: 0.5, new_wing: 1.5, conservation: 0.5,
+    mega: 2, shrink_end: -2.5, alliance: 0.5, paused: -0.5, reservation: -0.5,
+  };
+
   function aquariumConfig(state, endingId) {
     var f = state.flags;
     var s = state.stats;
-    var scale = 1;
-    if (f.big_tanks) scale += 1;
-    if (f.downsized) scale -= 1;
-    if (f.new_wing) scale += 1;
-    if (f.mega) scale += 1;
-    if (f.shrink_end) scale -= 1;
-    scale = clamp(scale, 0, 3);
+    // 水族館の「派手さ」0〜6（選ぶたびに上下し、建物の大きさと飾りが大きく変わる）
+    var grand = 0;
+    Object.keys(GRAND).forEach(function (k) { if (f[k]) grand += GRAND[k]; });
+    var scale = clamp(Math.round(grand * 0.75 + 0.5), 0, 6);
     return {
       location: f.loc_tourist ? "tourist" : f.loc_nature ? "nature" : "campus",
       main: f.main_big ? "big" : f.main_small ? "small" : "deep",
@@ -368,6 +371,7 @@
       staffStyle: f.staff_vet ? "veteran" : f.staff_rookie ? "rookie" : "elite",
       price: f.price_high ? "high" : f.price_low ? "low" : "mid",
       scale: scale,
+      grand: grand,
       newWing: !!f.new_wing,
       lab: !!(f.conservation || f.loc_campus),
       conservation: !!f.conservation,

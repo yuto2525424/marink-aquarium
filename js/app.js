@@ -176,7 +176,7 @@
   function renderTitle() {
     topbar(false);
     var saved = load();
-    var demo = { location: "tourist", main: "big", bigFish: "full", tanks: "big", staffStyle: "veteran", price: "mid", scale: 2, newWing: false, lab: false, conservation: false, alliance: false, mega: false, reservation: false, renewed: false, care: false, closed: false, reorg: false, crowd: 7, mood: "bright" };
+    var demo = { location: "tourist", main: "big", bigFish: "full", tanks: "big", staffStyle: "veteran", price: "mid", scale: 4, newWing: false, lab: false, conservation: false, alliance: false, mega: false, reservation: false, renewed: false, care: false, closed: false, reorg: false, crowd: 7, mood: "bright" };
     var resume = saved.length > 0 && saved.length < 10
       ? '<button class="btn btn--ghost btn--small" id="resumeBtn" type="button" style="margin-top:10px">続きから遊ぶ（第' + (saved.length + 1) + "問）</button>"
       : "";
@@ -376,7 +376,14 @@
   };
   var CUT_ORDER = ["loc_tourist", "loc_nature", "loc_campus", "main_big", "main_small", "main_deep", "mega", "shrink_end", "new_wing", "conservation", "alliance", "big_tanks", "variety", "reliable", "loan", "downsized", "delayed",
     "staff_vet", "staff_rookie", "staff_elite", "price_high", "price_mid", "price_low", "renewed", "paused", "contract", "extended", "reservation", "expanded_staff", "care", "keep"];
-  var CUT_MS = 2600;
+  var CUT_MS = 3200;
+  // 画面いっぱいに出る効果音の文字（やりすぎなくらい派手に）
+  var STAMP = {
+    build: "ドドーン！", grow: "ズズーン！", shrink: "しゅるる〜", annex: "ドーン！", "swim-big": "ザッパーン！", "swim-small": "スイスイ〜！", "swim-jelly": "ふわわ〜ん",
+    staff: "ようこそ！", open: "グランドオープン！", crowd: "ワイワイ！", repair: "トンテンカン！", night: "キラッキラ〜！", hearts: "ほっこり♪", sparkle: "ピカーン！",
+    coins: "ジャラジャラ！", "coins-out": "チャリーン…", time: "じっくり…", rain: "ザーザー…", storm: "ゴロゴロ…!!", bus: "ブロロ〜",
+  };
+  var CALM = { shrink: 1, "coins-out": 1, time: 1, rain: 1, storm: 1, bus: 1, "swim-jelly": 1 };
 
   function cutKind(before, after) {
     var added = after.flags.filter(function (f) { return before.flags.indexOf(f) < 0; });
@@ -386,6 +393,7 @@
 
   function cutParticles(kind) {
     var out = "", i;
+    if (kind === "fireworks") for (i = 0; i < 4; i++) out += '<i class="cut-fw" style="left:' + [18, 72, 44, 86][i] + "%;top:" + [16, 12, 6, 26][i] + "%;animation-delay:" + (0.9 + i * 0.25).toFixed(2) + 's"></i>';
     if (kind === "coins-out") for (i = 0; i < 10; i++) out += '<i class="cut-coin cut-coin--out" style="left:' + (30 + i * 4.5) + "%;animation-delay:" + (0.2 + (i % 5) * 0.1).toFixed(2) + 's"></i>';
     if (kind === "rain" || kind === "storm") {
       out += '<i class="cut-cloud" style="left:8%"></i><i class="cut-cloud" style="left:46%;animation-delay:.15s"></i><i class="cut-cloud" style="left:72%;animation-delay:.3s"></i>';
@@ -411,7 +419,8 @@
       var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
       var ms = reduce ? 1200 : (o.ms || CUT_MS);
       var el = document.createElement("div");
-      el.className = "cutscene cut-" + o.kind + (reduce ? " cut-reduce" : "");
+      el.className = "cutscene cut-" + o.kind + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
+      if (o.from) el.style.setProperty("--from", o.from);
       el.style.setProperty("--cut-ms", ms + "ms");
       el.setAttribute("role", "status");
       el.setAttribute("aria-live", "polite");
@@ -419,7 +428,9 @@
         '<div class="cutscene__frame">' +
           '<div class="cutscene__layer cutscene__before">' + M.visual.render(o.before, { signText: sign, seed: 11, id: "cb", label: "変わる前の水族館" }) + "</div>" +
           '<div class="cutscene__layer cutscene__after">' + M.visual.render(o.after, { signText: sign, seed: 11, id: "ca", label: "変わったあとの水族館" }) + "</div>" +
-          '<div class="cutscene__fx">' + cutParticles(o.kind) + "</div>" +
+          (STAMP[o.kind] ? '<div class="cut-stamp' + (CALM[o.kind] ? " cut-stamp--calm" : "") + '">' + esc(o.stamp || STAMP[o.kind]) + "</div>" : "") +
+          (CALM[o.kind] ? "" : '<div class="cut-burst">' + confettiBurst() + '</div><i class="cut-impact"></i>') +
+          '<div class="cutscene__fx">' + cutParticles(o.kind) + (o.extraClass && o.extraClass.indexOf("cut-big") >= 0 ? cutParticles("fireworks") : "") + "</div>" +
         "</div>" +
         (o.tag ? '<span class="cutscene__tag mood-' + o.mood + '">' + esc(o.tag) + "</span>" : "") +
         '<p class="cutscene__label">' + esc(o.label) + "</p>" +
@@ -440,12 +451,34 @@
     });
   }
 
+  function confettiBurst() {
+    var cols = ["#f2a79c", "#7cc0cf", "#f3d27a", "#9ccf9f", "#c7a6d9", "#ffffff"], out = "";
+    for (var i = 0; i < 28; i++) {
+      var ang = (i / 28) * Math.PI * 2, dist = 120 + (i % 4) * 40;
+      out += '<i style="--x:' + Math.round(Math.cos(ang) * dist) + "px;--y:" + Math.round(Math.sin(ang) * dist * 0.7 - 30) + "px;--r:" + (i * 47 % 360) + "deg;background:" + cols[i % 6] + '"></i>';
+    }
+    return out;
+  }
+
   function playCutscene(prevHistory, nextHistory, step) {
     var before, after;
     try { before = E.preview(prevHistory); after = E.preview(nextHistory); } catch (e) { return Promise.resolve(); }
     var k = cutKind(before, after), kind = k[0];
     var added = after.flags.filter(function (f) { return before.flags.indexOf(f) < 0; });
-    return showCut({ before: before, after: after, kind: kind, label: step.label, caption: k[1], newFlags: added,
+    // 派手さの段階が上がった・下がった分の飾りも「ポン」と出す
+    for (var t = before.scale + 1; t <= after.scale; t++) added.push("tier" + t);
+    if (after.scale <= 1 && (before.scale > 1 || before.empty)) added.push("cozy");
+    var extra = [], from = null, caption = k[1];
+    var wb = M.visual.widthOf(before), wa = M.visual.widthOf(after);
+    if (!before.empty && !after.empty && wb !== wa) {
+      extra.push("cut-resize");
+      from = (wb / wa).toFixed(3);
+      caption += wa > wb ? "　水族館がひとまわり大きくなった！" : "　こぢんまりとした雰囲気に";
+    }
+    if (after.scale >= 5 && after.scale > before.scale) extra.push("cut-big");
+    if (from && wa < wb) extra.push("cut-shrinking");
+    var ms = kind === "build" ? 3800 : CUT_MS;
+    return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms,
       sound: kind === "build" || kind === "annex" || kind === "grow" || kind === "repair" ? "bubble" : null });
   }
 
@@ -469,7 +502,7 @@
     return list.reduce(function (p, e) {
       return p.then(function () {
         var kind = e.id === "ev_income" ? ((e.delta.fund || 0) >= 0 ? "coins" : "rain") : EV_CUT[e.id] || (e.mood === "bad" ? "rain" : "sparkle");
-        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2100,
+        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2600,
           sound: e.mood === "crisis" ? "crisis" : e.mood === "bad" || kind === "rain" ? "bad" : "good" });
       });
     }, Promise.resolve());

@@ -55,42 +55,76 @@
       '<path d="M-5 1 q-2 5 0 10 M0 1 q2 6 0 12 M5 1 q2 5 0 10" stroke="' + color + '" stroke-width="1" fill="none"/></g>';
   }
 
-  /* ── 背景（立地） ── */
+  /* ── 背景（立地）：ひと目でどんな場所かわかるように ──
+   * 建物や木は <g class="mk-city" style="--d:秒"> で包み、建設アニメーションで順番に立ち上がる */
+  function cityItem(i, svg) { return '<g class="mk-city" style="--d:' + (0.15 + i * 0.07).toFixed(2) + 's">' + svg + "</g>"; }
+  function tower(x, y, w, h, c, lit, R) {
+    var out = '<rect x="' + x + '" y="' + (y - h) + '" width="' + w + '" height="' + h + '" rx="1.5" fill="' + c + '"/>';
+    for (var wy = y - h + 6; wy < y - 6; wy += 7) {
+      for (var wx = x + 3; wx < x + w - 4; wx += 6) {
+        if (R() < 0.82) out += '<rect x="' + wx.toFixed(1) + '" y="' + wy.toFixed(1) + '" width="3" height="3.4" fill="' + (lit && R() < 0.5 ? "#ffe9a8" : "#cfe2ec") + '" opacity=".95"/>';
+      }
+    }
+    return out;
+  }
   function background(cfg, P, R) {
-    var out = "";
+    var out = "", i;
+    var lit = cfg.night || cfg.mood === "night" || cfg.mood === "dusk";
     if (!cfg.location) {
       out += '<path d="M0 196 C90 178 170 190 230 196 C300 184 350 182 400 192 L400 215 L0 215 Z" fill="#cfe4c4"/>';
       out += tree(40, 208, 0.9) + tree(360, 208, 1) + tree(384, 210, 0.8);
       return out;
     }
     if (cfg.location === "tourist") {
-      // 観覧車・ホテル・ヤシの木
-      out += '<g opacity=".75"><circle cx="64" cy="150" r="34" fill="none" stroke="#e8a1a6" stroke-width="2.5"/>';
-      for (var i = 0; i < 8; i++) {
+      // 都会：高層ビルが立ち並ぶスカイライン・展望タワー・観覧車・ホテル・ヤシの木
+      var far = [[0, 22, 84], [20, 18, 112], [36, 26, 70], [60, 16, 128], [74, 24, 96], [96, 20, 140], [114, 28, 88], [140, 18, 118], [156, 24, 100], [178, 20, 136],
+        [196, 26, 92], [220, 18, 124], [236, 24, 106], [258, 20, 146], [276, 26, 90], [300, 18, 120], [316, 24, 98], [338, 20, 132], [356, 26, 86], [380, 20, 116]];
+      out += '<g opacity=".55">';
+      for (i = 0; i < far.length; i++) out += cityItem(i * 0.5, tower(far[i][0], 212, far[i][1], far[i][2], ["#c4d3e0", "#cfd9e4", "#bccbd9"][i % 3], lit, R));
+      out += "</g>";
+      var near = [[4, 30, 70, "#e3e9f0"], [34, 22, 92, "#dde6ee"], [104, 26, 64, "#e8e4dc"], [262, 28, 78, "#e6ebf1"], [292, 24, 104, "#dfe7ef"], [318, 34, 66, "#ece6dc"], [354, 26, 88, "#e2e8ef"], [380, 22, 60, "#e8e2d8"]];
+      for (i = 0; i < near.length; i++) out += cityItem(4 + i, tower(near[i][0], 214, near[i][1], near[i][2], near[i][3], lit, R));
+      // 展望タワー（架空のもの）
+      out += cityItem(12, '<g><path d="M338 214 L346 70 L350 70 L358 214 Z" fill="#e7a3a3" opacity=".9"/><rect x="336" y="96" width="24" height="10" rx="5" fill="#f4f1ea" stroke="#d58f95" stroke-width="1"/><rect x="341" y="76" width="14" height="8" rx="4" fill="#f4f1ea" stroke="#d58f95" stroke-width="1"/><path d="M348 70 V48" stroke="#b9767c" stroke-width="1.5"/><circle cx="348" cy="47" r="2.2" fill="#ff6b6b"/></g>');
+      // 観覧車
+      var wheel = '<g opacity=".9"><circle cx="64" cy="150" r="34" fill="none" stroke="#e8a1a6" stroke-width="2.5"/>';
+      for (i = 0; i < 8; i++) {
         var a = (i / 8) * Math.PI * 2;
-        out += '<line x1="64" y1="150" x2="' + (64 + Math.cos(a) * 34).toFixed(1) + '" y2="' + (150 + Math.sin(a) * 34).toFixed(1) + '" stroke="#e8a1a6" stroke-width="1"/>';
-        out += '<circle cx="' + (64 + Math.cos(a) * 34).toFixed(1) + '" cy="' + (150 + Math.sin(a) * 34).toFixed(1) + '" r="3.5" fill="' + ["#f6c6a8", "#a9d8e6", "#f3e0a0"][i % 3] + '"/>';
+        wheel += '<line x1="64" y1="150" x2="' + (64 + Math.cos(a) * 34).toFixed(1) + '" y2="' + (150 + Math.sin(a) * 34).toFixed(1) + '" stroke="#e8a1a6" stroke-width="1"/>';
+        wheel += '<circle cx="' + (64 + Math.cos(a) * 34).toFixed(1) + '" cy="' + (150 + Math.sin(a) * 34).toFixed(1) + '" r="3.5" fill="' + ["#f6c6a8", "#a9d8e6", "#f3e0a0"][i % 3] + '"/>';
       }
-      out += '<path d="M56 212 L64 150 L72 212" stroke="#d58f95" stroke-width="2" fill="none"/></g>';
-      out += '<rect x="300" y="140" width="34" height="72" rx="3" fill="#e9eef3"/><rect x="336" y="160" width="28" height="52" rx="3" fill="#f1e8de"/>';
-      for (var w = 0; w < 6; w++) out += '<rect x="' + (305 + (w % 2) * 14) + '" y="' + (148 + Math.floor(w / 2) * 18) + '" width="8" height="8" rx="1.5" fill="#bcd9e6"/>';
-      out += palm(30, 214) + palm(372, 214);
+      wheel += '<path d="M56 212 L64 150 L72 212" stroke="#d58f95" stroke-width="2" fill="none"/></g>';
+      out += cityItem(13, wheel);
+      // 屋上の看板
+      out += cityItem(14, '<g><rect x="290" y="96" width="30" height="10" rx="2" fill="#2f4a6b"/><text x="305" y="103.4" font-size="5.5" font-weight="700" text-anchor="middle" fill="#ffd36b" font-family="sans-serif">SEA CITY</text></g>');
+      out += cityItem(15, palm(24, 214) + palm(150, 214) + palm(250, 214) + palm(388, 214));
     } else if (cfg.location === "nature") {
-      out += '<path d="M0 190 C60 150 120 168 170 186 C230 160 300 150 400 182 L400 215 L0 215 Z" fill="#a9d3a8" opacity=".85"/>';
-      out += '<path d="M0 200 C80 178 150 196 220 200 C290 186 350 184 400 196 L400 215 L0 215 Z" fill="#8cc59a"/>';
-      for (var t = 0; t < 7; t++) {
-        var tx = [24, 48, 80, 312, 338, 366, 390][t];
-        out += tree(tx, 206 - (t % 2) * 3, 0.8 + R() * 0.4);
+      // 自然の海辺：重なる山・森・灯台・カモメ
+      out += cityItem(0, '<path d="M0 170 L46 108 L84 150 L130 96 L184 160 L230 120 L280 166 L330 112 L400 168 L400 214 L0 214 Z" fill="#b7d3c4" opacity=".75"/>');
+      out += cityItem(1, '<path d="M150 116 l-10 14 l20 0 Z M330 112 l-9 12 l18 0 Z" fill="#fff" opacity=".85"/>');
+      out += cityItem(2, '<path d="M0 190 C60 150 120 168 170 186 C230 160 300 150 400 182 L400 215 L0 215 Z" fill="#a9d3a8" opacity=".9"/>');
+      out += cityItem(3, '<path d="M0 200 C80 178 150 196 220 200 C290 186 350 184 400 196 L400 215 L0 215 Z" fill="#8cc59a"/>');
+      var trees = "";
+      for (i = 0; i < 16; i++) {
+        var tx = [8, 22, 36, 50, 64, 78, 92, 106, 296, 310, 324, 338, 352, 366, 380, 394][i];
+        trees += tree(tx, 207 - (i % 3) * 3, 0.7 + R() * 0.5);
       }
-      // 灯台
-      out += '<g transform="translate(352 120)"><path d="M-7 70 L-4 0 L4 0 L7 70 Z" fill="#fbfaf6"/><rect x="-4.5" y="16" width="9" height="7" fill="#e88f8f"/><rect x="-5.5" y="38" width="11" height="7" fill="#e88f8f"/><rect x="-6" y="-8" width="12" height="9" rx="2" fill="' + P.sun + '"/><path d="M-7 -8 L0 -16 L7 -8 Z" fill="#e88f8f"/></g>';
+      out += cityItem(4, trees);
+      out += cityItem(6, '<g transform="translate(352 118)"><path d="M-7 72 L-4 0 L4 0 L7 72 Z" fill="#fbfaf6"/><rect x="-4.5" y="16" width="9" height="7" fill="#e88f8f"/><rect x="-5.5" y="38" width="11" height="7" fill="#e88f8f"/><rect x="-6" y="-8" width="12" height="9" rx="2" fill="' + P.sun + '"/><path d="M-7 -8 L0 -16 L7 -8 Z" fill="#e88f8f"/><path d="M6 -4 L60 -20 L60 12 Z" fill="#fff6c9" opacity=".35"/></g>');
+      out += cityItem(7, '<g stroke="#5b6b7d" stroke-width="1.2" fill="none"><path d="M120 70 q5 -5 10 0 q5 -5 10 0"/><path d="M150 54 q4 -4 8 0 q4 -4 8 0"/><path d="M262 66 q5 -5 10 0 q5 -5 10 0"/></g>');
+      // 漁師小屋
+      out += cityItem(8, '<g><rect x="16" y="196" width="26" height="18" fill="#d9b58c"/><path d="M13 197 L29 184 L45 197 Z" fill="#a3785a"/><rect x="25" y="203" width="7" height="11" fill="#8a6a50"/></g>');
     } else {
-      // 大学・時計台・天文台
-      out += '<rect x="20" y="150" width="70" height="62" rx="3" fill="#ece6dc"/><path d="M14 152 L55 128 L96 152 Z" fill="#c9a98f"/>';
-      for (var c = 0; c < 4; c++) out += '<rect x="' + (28 + c * 15) + '" y="166" width="8" height="30" rx="4" fill="#b9d4e0"/>';
-      out += '<rect x="96" y="120" width="18" height="92" fill="#e5ddd0"/><circle cx="105" cy="134" r="6" fill="#fffaf0" stroke="#c9a98f"/><path d="M105 134 L105 130 M105 134 L108 135" stroke="#7a6a5a" stroke-width="1"/><path d="M93 121 L105 106 L117 121 Z" fill="#c9a98f"/>';
-      out += '<rect x="318" y="168" width="54" height="44" rx="3" fill="#e6ebef"/><path d="M322 168 A23 23 0 0 1 368 168 Z" fill="#c4d3df"/><rect x="343" y="146" width="4" height="12" fill="#9fb5c7" transform="rotate(25 345 152)"/>';
-      out += tree(300, 208, 0.9) + tree(384, 208, 1);
+      // 大学の街：講堂・図書館・時計台・天文台・並木
+      out += cityItem(0, '<g><rect x="6" y="144" width="96" height="68" rx="3" fill="#ece6dc"/><path d="M0 146 L54 116 L108 146 Z" fill="#c9a98f"/>' +
+        (function () { var c = ""; for (var k = 0; k < 6; k++) c += '<rect x="' + (14 + k * 15) + '" y="158" width="7" height="44" rx="3.5" fill="#f8f4ec" stroke="#d9cbb8" stroke-width=".6"/>'; return c; })() + "</g>");
+      out += cityItem(1, '<g><rect x="104" y="112" width="20" height="100" fill="#e5ddd0"/><circle cx="114" cy="128" r="7" fill="#fffaf0" stroke="#c9a98f"/><path d="M114 128 L114 123 M114 128 L118 129" stroke="#7a6a5a" stroke-width="1"/><path d="M100 113 L114 94 L128 113 Z" fill="#c9a98f"/><path d="M114 94 V84" stroke="#9a8a7a" stroke-width="1"/><path d="M114 84 l8 3 l-8 3 Z" fill="#7cc0cf"/></g>');
+      out += cityItem(2, tower(272, 212, 40, 70, "#e6e1d8", lit, R) + '<path d="M270 143 L292 130 L314 143 Z" fill="#c9a98f"/><text x="292" y="156" font-size="5" font-weight="700" text-anchor="middle" fill="#7a6a5a" font-family="sans-serif">LIBRARY</text>');
+      out += cityItem(3, '<g><rect x="318" y="166" width="58" height="46" rx="3" fill="#e6ebef"/><path d="M322 166 A25 25 0 0 1 372 166 Z" fill="#c4d3df"/><rect x="345" y="142" width="4" height="14" fill="#9fb5c7" transform="rotate(25 347 150)"/></g>');
+      out += cityItem(4, '<g><rect x="380" y="150" width="20" height="62" fill="#ece6dc"/><rect x="384" y="158" width="5" height="6" fill="#cfe2ec"/><rect x="391" y="158" width="5" height="6" fill="#cfe2ec"/><rect x="384" y="170" width="5" height="6" fill="#cfe2ec"/><rect x="391" y="170" width="5" height="6" fill="#cfe2ec"/></g>');
+      out += cityItem(5, tree(132, 210, 0.9) + tree(146, 211, 0.8) + tree(256, 210, 0.9) + tree(244, 211, 0.75));
+      // 自転車
+      out += cityItem(6, '<g stroke="#5b6b7d" stroke-width="1" fill="none"><circle cx="246" cy="222" r="3.5"/><circle cx="256" cy="222" r="3.5"/><path d="M246 222 L250 216 L256 222 M250 216 L254 216"/></g>');
     }
     return out;
   }
@@ -106,8 +140,10 @@
 
   /* ── 本館（メイン展示で形が変わる） ── */
   function mainBuilding(cfg, P, opts) {
-    var W = [118, 142, 166, 190][cfg.scale];
-    var H = [62, 70, 78, 86][cfg.scale];
+    // 派手さ（grand）に合わせて、建物の大きさを少しずつ変える
+    var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
+    var W = Math.round(Math.max(72, Math.min(292, 100 + gr * 24)));
+    var H = Math.round(Math.max(44, Math.min(126, 56 + gr * 8.5)));
     var x0 = 200 - W / 2;
     var gy = 214;
     var out = "";
@@ -127,7 +163,7 @@
     } else if (cfg.main === "small") {
       out += '<rect x="' + x0 + '" y="' + (gy - H) + '" width="' + W + '" height="' + H + '" rx="8" fill="#fbf6ee"/>';
       out += '<path d="M' + (x0 - 8) + " " + (gy - H + 6) + " Q200 " + (gy - H - 38) + " " + (x0 + W + 8) + " " + (gy - H + 6) + ' Z" fill="#f2a79c"/>';
-      var n = 3 + cfg.scale;
+      var n = Math.max(2, Math.min(7, Math.round(W / 34)));
       for (var i = 0; i < n; i++) {
         var cx = x0 + (W / (n + 1)) * (i + 1);
         out += '<circle cx="' + cx + '" cy="' + (gy - H * 0.62) + '" r="9" fill="' + glass + '" stroke="#e6d6c2" stroke-width="2"/>';
@@ -262,6 +298,58 @@
     return out;
   }
 
+  /* ───── 派手さ（scale 0〜6）に応じた飾り ─────
+   * 小さいほど手づくり感、大きいほど豪華に。class "mk-x-tierN" / "mk-x-cozy" は変化アニメーション用 */
+  function tierDecor(cfg, b) {
+    if (cfg.closed || cfg.empty) return "";
+    var gy = 214, x0 = b.x0, W = b.W, H = b.H, t = cfg.scale || 0, out = "", i;
+    if (t <= 1) {
+      // こぢんまり：手書きの立て看板・植木鉢・ランタン
+      out += xg("cozy", '<g><rect x="' + (x0 - 20) + '" y="196" width="16" height="12" rx="1.5" fill="#d9b58c" stroke="#a3785a" stroke-width=".8"/><rect x="' + (x0 - 13) + '" y="208" width="2" height="7" fill="#a3785a"/>' +
+        '<text x="' + (x0 - 12) + '" y="204" font-size="4.4" font-weight="700" text-anchor="middle" fill="#6d4e36" font-family="Zen Maru Gothic, sans-serif">ようこそ</text>' +
+        '<g><path d="M181 214 l2 -6 h6 l2 6 Z" fill="#c9805a"/><circle cx="186" cy="205" r="4" fill="#79b58e"/><path d="M211 214 l2 -6 h6 l2 6 Z" fill="#c9805a"/><circle cx="216" cy="205" r="4" fill="#8cc59a"/></g>' +
+        '<rect x="' + (x0 + W - 12) + '" y="' + (gy - H * 0.55) + '" width="5" height="7" rx="2" fill="#ffd98a" stroke="#a3785a" stroke-width=".6"/></g>');
+    }
+    if (t >= 3) {
+      // 屋根の旗
+      out += xg("tier3", '<g><rect x="' + (x0 + 6) + '" y="' + (gy - H - 24) + '" width="1.4" height="22" fill="#9aa6b4"/><path d="M' + (x0 + 7.4) + " " + (gy - H - 24) + ' l12 3.5 l-12 3.5 Z" fill="#f2a79c"/><rect x="' + (x0 + W - 7) + '" y="' + (gy - H - 24) + '" width="1.4" height="22" fill="#9aa6b4"/><path d="M' + (x0 + W - 5.6) + " " + (gy - H - 24) + ' l12 3.5 l-12 3.5 Z" fill="#7cc0cf"/></g>');
+    }
+    if (t >= 4) {
+      // 2階の展望ガラスと縦長の垂れ幕
+      out += xg("tier4", '<g><rect x="' + (x0 + 10) + '" y="' + (gy - H + 4) + '" width="' + (W - 20) + '" height="7" rx="3.5" fill="#bfe3ee" stroke="#fff" stroke-width="1"/>' +
+        '<rect x="' + (x0 + 3) + '" y="' + (gy - H + 14) + '" width="8" height="' + (H * 0.5) + '" fill="#f2a79c"/><rect x="' + (x0 + W - 11) + '" y="' + (gy - H + 14) + '" width="8" height="' + (H * 0.5) + '" fill="#7cc0cf"/>' +
+        '<circle cx="' + (x0 + 7) + '" cy="' + (gy - H + 22) + '" r="2.4" fill="#fff"/><circle cx="' + (x0 + W - 7) + '" cy="' + (gy - H + 22) + '" r="2.4" fill="#fff"/></g>');
+    }
+    if (t >= 4) {
+      out += xg("tier4b", '<g><ellipse cx="318" cy="58" rx="30" ry="11" fill="#f4f1ea" stroke="#c9d3dc" stroke-width="1"/><path d="M290 58 l-8 -7 v14 Z" fill="#7cc0cf"/><rect x="310" y="68" width="14" height="5" rx="2" fill="#7cc0cf"/>' +
+        '<text x="318" y="61" font-size="7" font-weight="900" text-anchor="middle" fill="#2f4a6b" font-family="Zen Maru Gothic, sans-serif">MARINK</text></g>');
+    }
+    if (t >= 5) {
+      // 両側の丸い塔とサーチライト
+      var tw = 16, th = H + 30;
+      out += xg("tier5", '<g><path d="M' + (x0 - 14) + " " + (gy - th + 26) + " L" + (x0 + 8) + " " + (gy - th - 140) + " L" + (x0 + 30) + " " + (gy - th + 26) + ' Z" fill="#fff6c9" opacity=".22"/><path d="M' + (x0 + W - 30) + " " + (gy - th + 26) + " L" + (x0 + W + 4) + " " + (gy - th - 140) + " L" + (x0 + W + 18) + " " + (gy - th + 26) + ' Z" fill="#fff6c9" opacity=".22"/>' +
+        '<rect x="' + (x0 - 10) + '" y="' + (gy - th) + '" width="' + tw + '" height="' + th + '" rx="6" fill="#f3efe6"/><path d="M' + (x0 - 13) + " " + (gy - th) + " L" + (x0 - 2) + " " + (gy - th - 20) + " L" + (x0 + 9) + " " + (gy - th) + ' Z" fill="#4f8fb8"/>' +
+        '<rect x="' + (x0 + W - 6) + '" y="' + (gy - th) + '" width="' + tw + '" height="' + th + '" rx="6" fill="#f3efe6"/><path d="M' + (x0 + W - 9) + " " + (gy - th) + " L" + (x0 + W + 2) + " " + (gy - th - 20) + " L" + (x0 + W + 13) + " " + (gy - th) + ' Z" fill="#4f8fb8"/>' +
+        '<rect x="' + (x0 - 6) + '" y="' + (gy - th + 14) + '" width="8" height="10" rx="4" fill="#bfe3ee"/><rect x="' + (x0 + W - 2) + '" y="' + (gy - th + 14) + '" width="8" height="10" rx="4" fill="#bfe3ee"/></g>');
+    }
+    if (t >= 6) {
+      // 屋根の上の大きなガラスドームと花火
+      var dw = W * 0.42, dy = gy - H - 4;
+      var dome = '<g><path d="M' + (200 - dw / 2) + " " + dy + " A" + dw / 2 + " " + dw * 0.42 + " 0 0 1 " + (200 + dw / 2) + " " + dy + ' Z" fill="#cfeef6" stroke="#fff" stroke-width="1.5" opacity=".92"/>';
+      for (i = 1; i < 5; i++) dome += '<path d="M' + (200 - dw / 2 + (dw / 5) * i) + " " + dy + " Q200 " + (dy - dw * 0.5) + " " + (200 - dw / 2 + (dw / 5) * i) + " " + dy + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/>';
+      dome += '<path d="M' + (200 - dw * 0.36) + " " + (dy - dw * 0.18) + " Q200 " + (dy - dw * 0.3) + " " + (200 + dw * 0.36) + " " + (dy - dw * 0.18) + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/></g>';
+      var fw = "";
+      [[110, 52, "#f2a79c"], [290, 44, "#f3d27a"], [200, 30, "#7cc0cf"]].forEach(function (p) {
+        for (var k = 0; k < 10; k++) {
+          var ang = (k / 10) * Math.PI * 2;
+          fw += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + (p[0] + Math.cos(ang) * 11).toFixed(1) + '" y2="' + (p[1] + Math.sin(ang) * 11).toFixed(1) + '" stroke="' + p[2] + '" stroke-width="1.6" stroke-linecap="round"/>';
+        }
+      });
+      out += xg("tier6", dome + '<g opacity=".85">' + fw + "</g>");
+    }
+    return out;
+  }
+
   function nightLights(cfg, b) {
     if (!cfg.night || cfg.closed) return "";
     var out = "", y = 214 - b.H - 4;
@@ -353,6 +441,10 @@
         (cfg.main === "deep" && i % 2 ? jelly(x, y, 0.7, colors[i % 3]) : fish(x, y, 0.55 + R() * 0.3, colors[i % 3], i % 2 === 0)) + "</g>";
     }
     if (cfg.main === "big" && cfg.bigFish === "full" && !cfg.closed) out += '<g opacity=".55">' + whaleShark(300, 282, 0.55) + "</g>";
+    // 海に浮かぶ船（場所によって変わる）
+    if (cfg.location === "tourist") out += '<g class="mk-city" style="--d:1.2s"><path d="M300 240 h56 l-8 9 h-42 Z" fill="#fbfaf6"/><rect x="312" y="232" width="30" height="8" rx="2" fill="#f4f1ea"/><rect x="316" y="234" width="4" height="3" fill="#7cc0cf"/><rect x="323" y="234" width="4" height="3" fill="#7cc0cf"/><rect x="330" y="234" width="4" height="3" fill="#7cc0cf"/><rect x="336" y="226" width="5" height="7" fill="#e88f8f"/></g>' +
+      '<g class="mk-city" style="--d:1.3s"><path d="M40 244 h24 l-4 6 h-17 Z" fill="#fff"/><path d="M52 243 V226 L64 242 Z" fill="#f6f1e8"/></g>';
+    if (cfg.location === "nature") out += '<g class="mk-city" style="--d:1s"><path d="M310 244 h30 l-5 7 h-21 Z" fill="#c9805a"/><rect x="320" y="236" width="10" height="8" fill="#f3efe6"/><path d="M336 244 V228" stroke="#8a6a50" stroke-width="1"/><path d="M336 230 l10 6" stroke="#9aa6b4" stroke-width=".6"/></g>';
     return out;
   }
 
@@ -523,7 +615,7 @@
       body += plannedSite() + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
     } else {
       var b = mainBuilding(cfg, P, opts);
-      body += '<g class="mk-annex">' + annexes(cfg, b) + "</g>" + '<g class="mk-bldg">' + b.svg + damageLayer(cfg, b, R) + nightLights(cfg, b) + "</g>" + '<g class="mk-extra">' + extras(cfg, b) + "</g></g>" +
+      body += '<g class="mk-cluster"><g class="mk-annex">' + annexes(cfg, b) + "</g>" + '<g class="mk-bldg">' + b.svg + damageLayer(cfg, b, R) + nightLights(cfg, b) + "</g>" + '<g class="mk-extra">' + extras(cfg, b) + tierDecor(cfg, b) + "</g></g></g>" +
         '<g class="mk-staff">' + staff(cfg) + "</g>" + '<g class="mk-people">' + people(cfg, R) + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
     }
     if (cfg.renewed && !cfg.closed) body += '<g fill="#fffbe0"><path d="M150 140 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z"/><path d="M262 128 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 Z"/></g>';
@@ -534,5 +626,9 @@
     return svg.replace(/id="(skyGrad|seaGrad|glass|glow|wc|paper)"/g, 'id="' + id + '-$1"').replace(/url\(#(skyGrad|seaGrad|glass|glow|wc|paper)\)/g, "url(#" + id + "-$1)");
   }
 
-  M.visual = { render: render, DAMAGE_NAMES: DAMAGE_NAMES };
+  function widthOf(cfg) {
+    var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
+    return Math.round(Math.max(72, Math.min(292, 100 + gr * 24)));
+  }
+  M.visual = { render: render, widthOf: widthOf, DAMAGE_NAMES: DAMAGE_NAMES };
 })(typeof window !== "undefined" ? window : globalThis);

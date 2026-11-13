@@ -166,7 +166,7 @@
       parts.push("入口には「10年間ありがとうございました」の手書きの貼り紙。");
       return parts.join("");
     }
-    var size = ["こぢんまりとした", "ほどよい大きさの", "大きな", "とても大きな"][a.scale];
+    var size = ["手づくり感あふれる小さな", "こぢんまりとした", "ほどよい大きさの", "大きな", "とても大きな", "街のシンボルのような", "巨大な"][a.scale];
     parts.push(LOC[a.location].scene + "に建つ、" + size + name + "。");
     if (a.main === "big") parts.push(a.bigFish === "full" ? "大水槽ではジンベエザメがゆったりと旋回している。" : "大型水槽ではエイが優雅に羽ばたいている。");
     if (r.endingId === "gag") parts.push("入口には、すっかり色あせた「ジンベエザメ 近日公開！」の看板。");
