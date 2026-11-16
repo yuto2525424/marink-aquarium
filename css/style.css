@@ -781,3 +781,11 @@ body.is-opening { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .opening, .opening * , body.is-intro #app .screen > * { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
+
+/* ───── 「水族館をつくる」を押したとき：光と泡のベールでふわっと切り替え ───── */
+.veil { position: fixed; inset: 0; z-index: 80; overflow: hidden; pointer-events: auto;
+  background: radial-gradient(120% 90% at 50% 10%, rgba(244,252,253,.97) 0%, rgba(207,238,245,.96) 40%, rgba(143,208,224,.95) 75%, rgba(90,174,198,.95) 100%);
+  animation: veilIn .8s ease both; }
+@keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+.veil.is-leaving { animation: openLeave 1.3s ease forwards; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .veil, .veil * { animation-duration: .01s !important; animation-delay: 0s !important; } }

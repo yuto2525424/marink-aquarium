@@ -207,9 +207,12 @@
         '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       "</section>"
     );
+    var starting = false;
     function start() {
+      if (starting) return;
+      starting = true;
       S.play("bubble");
-      renderNameScreen(loadName());
+      softTransition(function () { renderNameScreen(loadName()); });
     }
     $("startBtn").addEventListener("click", start);
     $("startBtn2").addEventListener("click", start);
@@ -489,7 +492,7 @@
     var power = kind === "build" || change >= 0.15 || Math.abs(jump) >= 2 || (after.scale >= 5 && jump > 0) ? "big"
       : change >= 0.05 || jump !== 0 || ["annex", "grow", "shrink"].indexOf(kind) >= 0 ? "mid" : "small";
     return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms, power: power,
-      sound: kind === "build" || kind === "annex" || kind === "grow" || kind === "repair" ? "bubble" : null });
+      sound: kind === "build" ? "construct" : kind === "annex" || kind === "grow" || kind === "repair" ? "constructShort" : null });
   }
 
   /* 途中のイベント（「第○問の前に…」）の演出 */
@@ -966,6 +969,24 @@
     }
     renderTitle();
     opening();
+  }
+
+  /* ───── ふわっと場面を切り替える：光と泡のベールがかかって、次の画面が浮かび上がる ───── */
+  function softTransition(render) {
+    var v = document.createElement("div");
+    v.className = "veil";
+    var b = "";
+    for (var i = 0; i < 12; i++) b += '<i style="left:' + ((i * 41 + 7) % 100) + "%;width:" + (6 + (i % 4) * 5) + "px;height:" + (6 + (i % 4) * 5) + "px;animation-delay:" + (i * 0.12).toFixed(2) + "s;animation-duration:" + (2.6 + (i % 3) * 0.6) + 's"></i>';
+    v.innerHTML = '<div class="opening__rays"></div><div class="opening__bubbles">' + b + "</div>";
+    document.body.appendChild(v);
+    setTimeout(function () {
+      render();
+      window.scrollTo(0, 0);
+      document.body.classList.add("is-intro");
+      v.classList.add("is-leaving");
+      setTimeout(function () { v.remove(); }, 1400);
+      setTimeout(function () { document.body.classList.remove("is-intro"); }, 2600);
+    }, 800);
   }
 
   /* ───── オープニング：水の中の光と泡から、ふわーっと始まる ─────
