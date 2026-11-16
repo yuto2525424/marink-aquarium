@@ -789,3 +789,24 @@ body.is-opening { overflow: hidden; }
 @keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
 .veil.is-leaving { animation: openLeave 1.3s ease forwards; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .veil, .veil * { animation-duration: .01s !important; animation-delay: 0s !important; } }
+
+/* ───── 工事の様子：クレーン・足場・火花（建て終わる前にさっと片付く） ───── */
+.cut-works { position: absolute; inset: 0; pointer-events: none; animation: worksLife var(--works, 1.9s) ease both; }
+.cut-works svg { display: block; width: 100%; height: 100%; }
+.cut-build .cut-works { --works: 2.75s; }
+@keyframes worksLife { 0% { opacity: 0; transform: translateY(10px); } 10% { opacity: 1; transform: none; } 78% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
+.works-scaffold { animation: worksRise .7s cubic-bezier(.3,.9,.3,1.1) .15s both; transform-box: view-box; transform-origin: 200px 214px; }
+@keyframes worksRise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.works-crane { animation: worksIn .6s ease both; }
+.works-crane--2 { animation-delay: .2s; }
+@keyframes worksIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+.works-jib { transform-box: view-box; transform-origin: 331px 60px; animation: jibSwing 1.5s ease-in-out infinite alternate; }
+.works-jib--2 { transform-origin: 66px 80px; animation-duration: 1.8s; animation-direction: alternate-reverse; }
+@keyframes jibSwing { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.works-hook { animation: hookBob 1s ease-in-out infinite alternate; }
+.works-hook--2 { animation-duration: 1.3s; }
+@keyframes hookBob { from { transform: translateY(-14px); } to { transform: translateY(26px); } }
+.works-spark { animation: sparkFlick .34s steps(2) infinite; transform-box: fill-box; }
+@keyframes sparkFlick { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+.cut-dust { animation-duration: 1.4s; }
+.cut-reduce .cut-works { display: none; }

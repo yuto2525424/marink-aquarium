@@ -319,7 +319,8 @@
   }
 
   function renderQuestion(q) {
-    bgm(q.mode === "crisis" ? "crisis" : "play");
+    // 問題ごとに曲が変わる（経営危機の問題だけは危機の曲）
+    bgm(q.mode === "crisis" ? "crisis" : "play" + Math.min(10, Math.max(1, q.round || history.length + 1)));
     var opts = q.options.map(function (o) {
       return '<button class="option" type="button" data-id="' + o.id + '">' +
         '<span class="option__badge" aria-hidden="true">' + o.id + "</span>" +
@@ -394,6 +395,45 @@
     return ["sparkle", "水族館が少し変わった！"];
   }
 
+
+  // 工事の様子（クレーンが鉄骨を吊り上げ、足場が組まれ、火花が散る）
+  function worksSvg(kind) {
+    var big = kind === "build";
+    var s = '<svg viewBox="0 0 400 300" aria-hidden="true">';
+    // 足場
+    s += '<g class="works-scaffold">';
+    for (var x = 120; x <= 280; x += 32) s += '<rect x="' + x + '" y="112" width="4" height="102" fill="#e0a13c"/>';
+    for (var y = 120; y <= 210; y += 30) s += '<rect x="118" y="' + y + '" width="168" height="3.5" fill="#c9842a"/>';
+    s += '<path d="M122 210 L154 120 M154 210 L186 120 M186 210 L218 120 M218 210 L250 120 M250 210 L282 120" stroke="#d99a3e" stroke-width="2" opacity=".75"/>';
+    s += '<rect x="118" y="112" width="168" height="102" fill="#7cc0cf" opacity=".18"/></g>';
+    // クレーン（右）
+    s += '<g class="works-crane">' +
+      '<rect x="326" y="62" width="10" height="152" fill="#f2c23a"/>' +
+      '<path d="M326 70 L336 82 M336 82 L326 94 M326 94 L336 106 M336 106 L326 118 M326 118 L336 130 M336 130 L326 142 M326 142 L336 154 M336 154 L326 166 M326 166 L336 178 M336 178 L326 190 M326 190 L336 202" stroke="#c99a1c" stroke-width="1.6"/>' +
+      '<rect x="318" y="204" width="26" height="10" rx="2" fill="#6b7a8f"/>' +
+      '<g class="works-jib"><rect x="196" y="56" width="168" height="7" fill="#f2c23a"/><path d="M200 63 L212 56 L224 63 L236 56 L248 63 L260 56 L272 63 L284 56 L296 63 L308 56 L320 63" stroke="#c99a1c" stroke-width="1.4" fill="none"/>' +
+      '<rect x="346" y="63" width="16" height="12" fill="#6b7a8f"/><path d="M331 44 L331 56 M331 44 L206 58 M331 44 L360 58" stroke="#8a95a8" stroke-width="1.2"/>' +
+      '<rect x="318" y="48" width="18" height="14" rx="2" fill="#e85d4a"/><rect x="322" y="51" width="8" height="6" fill="#cfeaf2"/>' +
+      '<g class="works-hook"><line x1="232" y1="63" x2="232" y2="112" stroke="#4b5568" stroke-width="1.4"/><path d="M228 112 h8 l-2 5 h-4 Z" fill="#4b5568"/>' +
+      '<rect x="206" y="118" width="52" height="7" fill="#9aa6b8"/><rect x="206" y="118" width="52" height="2" fill="#c6cfdb"/></g></g></g>';
+    // 2台目のクレーン（左・最初の建設だけ）
+    if (big) s += '<g class="works-crane works-crane--2">' +
+      '<rect x="62" y="84" width="8" height="130" fill="#f2c23a"/><rect x="56" y="206" width="20" height="8" rx="2" fill="#6b7a8f"/>' +
+      '<g class="works-jib works-jib--2"><rect x="30" y="78" width="130" height="6" fill="#f2c23a"/><rect x="30" y="84" width="12" height="10" fill="#6b7a8f"/>' +
+      '<g class="works-hook works-hook--2"><line x1="140" y1="84" x2="140" y2="128" stroke="#4b5568" stroke-width="1.3"/><rect x="122" y="128" width="36" height="9" rx="1.5" fill="#7fb6c6"/></g></g></g>';
+    // 火花
+    s += '<g class="works-sparks">';
+    [[154, 150], [218, 180], [250, 132], [186, 120]].forEach(function (p, i) {
+      s += '<g class="works-spark" style="animation-delay:' + (i * 0.17).toFixed(2) + 's" transform="translate(' + p[0] + " " + p[1] + ')"><circle r="3.2" fill="#fff6c8"/><path d="M0 0 l7 -5 M0 0 l8 3 M0 0 l-6 -6 M0 0 l-7 4 M0 0 l1 8" stroke="#ffd24a" stroke-width="1.6" stroke-linecap="round"/></g>';
+    });
+    s += "</g>";
+    // 工事中の柵
+    s += '<g class="works-fence">';
+    for (var b = 0; b < 4; b++) s += '<g transform="translate(' + (104 + b * 52) + ' 212)"><rect width="40" height="9" rx="1.5" fill="#fff"/><path d="M4 9 l6 -9 M14 9 l6 -9 M24 9 l6 -9 M34 9 l5 -7" stroke="#e85d4a" stroke-width="4"/><rect x="2" y="9" width="3" height="6" fill="#8a95a8"/><rect x="35" y="9" width="3" height="6" fill="#8a95a8"/></g>';
+    s += "</g></svg>";
+    return '<div class="cut-works">' + s + "</div>";
+  }
+
   function cutParticles(kind) {
     var out = "", i;
     if (kind === "fireworks") for (i = 0; i < 4; i++) out += '<i class="cut-fw" style="left:' + [18, 72, 44, 86][i] + "%;top:" + [16, 12, 6, 26][i] + "%;animation-delay:" + (0.9 + i * 0.25).toFixed(2) + 's"></i>';
@@ -407,7 +447,11 @@
     if (kind === "coins") for (i = 0; i < 14; i++) out += '<i class="cut-coin" style="left:' + (8 + i * 6.3) + "%;animation-delay:" + (0.25 + (i % 5) * 0.12).toFixed(2) + 's"></i>';
     if (kind === "hearts") for (i = 0; i < 10; i++) out += '<i class="cut-heart" style="left:' + (12 + i * 8) + "%;animation-delay:" + (0.3 + (i % 4) * 0.18).toFixed(2) + 's">♥</i>';
     if (kind === "sparkle" || kind === "repair" || kind === "grow" || kind === "annex") for (i = 0; i < 9; i++) out += '<i class="cut-star" style="left:' + (18 + (i * 37) % 64) + "%;top:" + (18 + (i * 23) % 46) + "%;animation-delay:" + (0.6 + i * 0.12).toFixed(2) + 's">✦</i>';
-    if (kind === "build" || kind === "annex" || kind === "grow") for (i = 0; i < 8; i++) out += '<i class="cut-dust" style="left:' + (30 + i * 5.5) + "%;animation-delay:" + (0.3 + (i % 4) * 0.15).toFixed(2) + 's"></i>';
+    if (kind === "build" || kind === "annex" || kind === "grow" || kind === "repair") {
+      out += worksSvg(kind);
+      // 土ぼこりをもくもくと
+      for (i = 0; i < 16; i++) out += '<i class="cut-dust" style="left:' + (22 + (i * 23) % 60) + "%;top:" + (58 + (i % 4) * 5) + "%;animation-delay:" + (0.25 + (i % 6) * 0.22).toFixed(2) + 's"></i>';
+    }
     if (kind === "swim-big") out += '<div class="cut-swimmer"><svg viewBox="-40 -20 90 40"><path d="M-34 0 C-30 -9 12 -10 28 -2 L42 -12 L38 0 L42 10 L28 2 C12 9 -30 9 -34 0 Z" fill="#4f7fa8"/><path d="M-2 -7 L4 -16 L10 -7 Z" fill="#4f7fa8"/><g fill="#fff" opacity=".85"><circle cx="-20" cy="-2" r="1.4"/><circle cx="-12" cy="1" r="1.4"/><circle cx="-4" cy="-3" r="1.4"/><circle cx="4" cy="0" r="1.4"/><circle cx="12" cy="-2" r="1.4"/></g><circle cx="-27" cy="-1" r="1.6" fill="#13304f"/></svg></div>';
     if (kind === "swim-small") for (i = 0; i < 6; i++) out += '<div class="cut-fish" style="top:' + (30 + i * 9) + "%;animation-delay:" + (i * 0.14).toFixed(2) + 's"><svg viewBox="-12 -8 30 16"><path d="M-10 0 C-5 -7 7 -7 10 0 C7 7 -5 7 -10 0 Z" fill="' + ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63", "#7cc0cf", "#c7a6d9"][i] + '"/><path d="M9 0 L16 -6 L15 0 L16 6 Z" fill="' + ["#f4a35d", "#7fbf9b", "#e9827a", "#f2cf63", "#7cc0cf", "#c7a6d9"][i] + '"/><circle cx="-5" cy="-1.5" r="1.3" fill="#2d3b55"/></svg></div>';
     if (kind === "swim-jelly") for (i = 0; i < 5; i++) out += '<div class="cut-jelly" style="left:' + (14 + i * 17) + "%;animation-delay:" + (i * 0.15).toFixed(2) + 's"><svg viewBox="-10 -12 20 26"><path d="M-8 0 C-8 -11 8 -11 8 0 Q4 2 0 0 Q-4 2 -8 0 Z" fill="' + ["#f7c6e0", "#c9e9ff", "#e6d4ff"][i % 3] + '"/><path d="M-5 1 q-2 5 0 10 M0 1 q2 6 0 12 M5 1 q2 5 0 10" stroke="' + ["#f7c6e0", "#c9e9ff", "#e6d4ff"][i % 3] + '" stroke-width="1" fill="none"/></svg></div>';

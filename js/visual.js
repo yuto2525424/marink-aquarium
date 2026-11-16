@@ -181,8 +181,8 @@
   function mainBuilding(cfg, P, opts) {
     // 派手さ（grand）に合わせて、建物の大きさを少しずつ変える
     var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
-    var W = Math.round(Math.max(72, Math.min(292, 100 + gr * 24)));
-    var H = Math.round(Math.max(44, Math.min(126, 56 + gr * 8.5)));
+    var W = widthOf(cfg);
+    var H = Math.round(Math.max(34, Math.min(130, gr >= 0 ? 54 + 76 * Math.tanh(gr / 8) : 54 + 24 * Math.tanh(gr / 4.5))));
     var x0 = 200 - W / 2;
     var gy = 214;
     var out = "";
@@ -703,7 +703,9 @@
 
   function widthOf(cfg) {
     var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
-    return Math.round(Math.max(72, Math.min(292, 100 + gr * 24)));
+    // 1段階ごとの変化を大きく（はじめほど大きく変わり、最大でも画面からはみ出さない）
+    var w = gr >= 0 ? 96 + 210 * Math.tanh(gr / 8) : 96 + 62 * Math.tanh(gr / 4.5);
+    return Math.round(Math.max(40, Math.min(304, w)));
   }
   M.visual = { render: render, widthOf: widthOf, DAMAGE_NAMES: DAMAGE_NAMES };
 })(typeof window !== "undefined" ? window : globalThis);

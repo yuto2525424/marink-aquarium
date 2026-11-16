@@ -350,10 +350,18 @@
     return clamp(lv, 1, 7);
   }
 
+  // どの選択肢を選んでも、外観がはっきり大きく／小さくなるように重みを付けている
   var GRAND = {
-    loc_tourist: 1, loc_nature: -1, main_big: 1, main_small: -1, big_tanks: 1, variety: 0.5, downsized: -1.5, loan: 0.5,
-    price_high: 0.5, price_low: 0.5, renewed: 0.5, extended: 0.5, expanded_staff: 0.5, new_wing: 1.5, conservation: 0.5,
-    mega: 2, shrink_end: -2.5, alliance: 0.5, paused: -0.5, reservation: -0.5,
+    loc_tourist: 2, loc_nature: -1.5, loc_campus: 0.5,
+    main_big: 2.5, main_small: -2, main_deep: 1,
+    big_tanks: 2, variety: 1.5, reliable: -1,
+    loan: 2, downsized: -2.5, delayed: -1,
+    staff_elite: 1.5, staff_vet: -0.5, staff_rookie: 0.5,
+    price_high: 2, price_mid: 0.5, price_low: 1,
+    renewed: 2, paused: -1.5, contract: 0.5,
+    extended: 1.5, reservation: -1.5, expanded_staff: 1.5,
+    new_wing: 3, conservation: 1.5, care: -1,
+    mega: 3.5, shrink_end: -4, alliance: 1.5, keep: 0,
   };
 
   function aquariumConfig(state, endingId) {
@@ -362,7 +370,7 @@
     // 水族館の「派手さ」0〜6（選ぶたびに上下し、建物の大きさと飾りが大きく変わる）
     var grand = 0;
     Object.keys(GRAND).forEach(function (k) { if (f[k]) grand += GRAND[k]; });
-    var scale = clamp(Math.round(grand * 0.75 + 0.5), 0, 6);
+    var scale = clamp(Math.round(grand * 0.5 + 0.5), 0, 6);
     return {
       location: f.loc_tourist ? "tourist" : f.loc_nature ? "nature" : "campus",
       main: f.main_big ? "big" : f.main_small ? "small" : "deep",

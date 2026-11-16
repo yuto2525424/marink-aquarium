@@ -63,7 +63,27 @@
     g2.gain.setValueAtTime(vol * 0.9, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
     s.connect(f).connect(g2).connect(out); s.start(t); s.stop(t + 0.16);
   }
+  // ドリルの「ギュイーン」（低いギザギザの音を震わせる）
+  function drill(start, len) {
+    var c = ac();
+    if (!c) return;
+    var t = c.currentTime + start;
+    var o = c.createOscillator(), f = c.createBiquadFilter(), gn = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(150, t); o.frequency.linearRampToValueAtTime(230, t + len * 0.4); o.frequency.linearRampToValueAtTime(190, t + len);
+    f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 1.4;
+    lfo.frequency.value = 32; lg.gain.value = 0.02;
+    gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(0.035, t + 0.05); gn.gain.setValueAtTime(0.035, t + len - 0.08); gn.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    lfo.connect(lg).connect(gn.gain);
+    o.connect(f).connect(gn).connect(out); o.start(t); o.stop(t + len + 0.05); lfo.start(t); lfo.stop(t + len + 0.05);
+  }
+  // 鉄骨の「カーン」
+  function clang(start) {
+    [880, 1370, 2210].forEach(function (fq, i) { tone(fq, start, 0.5 - i * 0.1, "triangle", 0.045 - i * 0.01); });
+  }
   function construct(len) {
+    drill(0.35, 0.55);
+    if (len > 2) { drill(1.5, 0.5); clang(1.15); }
+    clang(len > 2 ? 2.2 : 0.95);
     var n = Math.round(len / 0.19);
     for (var i = 0; i < n; i++) {
       // 「どご・どご」と2回ずつ、少し揺らしながら

@@ -2,7 +2,7 @@
  * BGM（場面ごとのオリジナル曲。Web Audio でその場で演奏するので、音楽ファイルは使っていません）
  *
  *   title  … タイトル画面：波の音とオルゴール
- *   play   … 問題を考えている間：波の音にのせた、ふしぎで幻想的なガラスの鐘とこだま
+ *   play   … 問題を考えている間：波の音にのせた、明るく穏やかなガラスの鐘
  *   crisis … 経営危機：少し緊張感のある曲
  *   happy  … 結果発表（うれしい結末）：きらきらしたベル
  *   sad    … 結果発表（ほろ苦い結末）：しっとりしたピアノ風
@@ -17,7 +17,7 @@
    * arp：アルペジオ（コードの何番目の音か。-1は休み）、lead：メロディの音の動き */
   var MAJ = [0, 4, 7, 12], MIN = [0, 3, 7, 12], SUS = [0, 5, 7, 12];
   // 幻想的な響き（リディアンの#11、メジャー7、9th）
-  var LYD7 = [0, 4, 6, 11], MAJ7 = [0, 4, 7, 11], M9 = [0, 3, 7, 10, 14], SUS7 = [0, 5, 7, 10];
+  var LYD7 = [0, 4, 6, 11], MAJ7 = [0, 4, 7, 11], M9 = [0, 3, 7, 10, 14], SUS7 = [0, 5, 7, 10], ADD9 = [0, 4, 7, 14], MIN7 = [0, 3, 7, 10];
   var TRACKS = {
     title: {
       bpm: 70, waves: true, master: 0.9,
@@ -28,13 +28,13 @@
       bass: { vol: 0.07, steps: [0, 8] },
     },
     play: {
-      // 波の音にのせて、ゆっくり漂う水の底のような曲。和音が全音ずつ沈み、ガラスの鐘がこだまする
-      bpm: 60, master: 0.95, echo: 0.42, waves: true, air: true,
-      chords: [[60, LYD7], [58, LYD7], [56, MAJ7], [55, SUS7], [60, LYD7], [58, LYD7], [53, M9], [55, SUS7]],
-      pad: { type: "sine", vol: 0.038, oct: -12, voices: 4, detune: 9 },
-      arp: { inst: "glass", vol: 0.032, oct: 12, steps: [0, -1, -1, 1, -1, -1, 2, -1, -1, 3, -1, -1, 2, -1, -1, -1] },
-      lead: { inst: "glass", vol: 0.028, oct: 24, every: 2, notes: [[0, 3, 8], [10, 2, 6]] },
-      bass: { vol: 0.05, steps: [0] },
+      // 波の音にのせて、明るく穏やかに。やさしい長調の和音と、ガラスの鐘がふんわり響く
+      bpm: 66, master: 0.9, echo: 0.28, waves: true,
+      chords: [[60, ADD9], [65, MAJ7], [57, MIN7], [55, SUS], [60, ADD9], [64, MIN7], [65, MAJ7], [55, MAJ]],
+      pad: { type: "sine", vol: 0.032, oct: -12, voices: 3, detune: 7 },
+      arp: { inst: "glass", vol: 0.028, oct: 12, steps: [0, -1, -1, -1, 1, -1, -1, -1, 2, -1, -1, -1, 3, -1, 2, -1] },
+      lead: { inst: "box", vol: 0.034, oct: 24, every: 2, notes: [[0, 2, 6], [8, 3, 4], [12, 1, 4]] },
+      bass: { vol: 0.045, steps: [0, 8] },
     },
     crisis: {
       bpm: 92, master: 0.85,
@@ -62,6 +62,36 @@
       bass: { vol: 0.07, steps: [0] },
     },
   };
+
+  /* 問題ごとのステージ曲：play1〜play10（第1問〜第10問で、毎回ちがう曲が流れる）
+   * どれも波の音にのせた、明るく穏やかな曲。調・テンポ・楽器・リズムを変えている */
+  var STAGES = [
+    { bpm: 66, echo: 0.28, chords: [[60, ADD9], [65, MAJ7], [57, MIN7], [55, SUS], [60, ADD9], [64, MIN7], [65, MAJ7], [55, MAJ]], arpI: "glass", leadI: "box",
+      arp: [0, -1, -1, -1, 1, -1, -1, -1, 2, -1, -1, -1, 3, -1, 2, -1], lead: [[0, 2, 6], [8, 3, 4], [12, 1, 4]] },
+    { bpm: 84, echo: 0.18, chords: [[62, MAJ], [57, MAJ], [59, MIN], [55, MAJ], [62, MAJ], [57, MAJ], [55, MAJ7], [57, SUS]], arpI: "marimba", leadI: "bell",
+      arp: [0, -1, 1, -1, 2, -1, 1, -1, 0, -1, 1, -1, 3, -1, 2, -1], lead: [[0, 2, 4], [6, 1, 2], [8, 3, 6]], hat: [4, 12] },
+    { bpm: 72, echo: 0.32, chords: [[65, MAJ7], [67, MAJ], [64, MIN7], [57, MIN7], [62, MIN7], [67, SUS], [65, MAJ7], [60, ADD9]], arpI: "bell", leadI: "glass",
+      arp: [0, -1, 2, -1, -1, 1, -1, 3, -1, -1, 2, -1, 1, -1, -1, -1], lead: [[0, 3, 8], [8, 2, 8]] },
+    { bpm: 78, echo: 0.22, chords: [[63, MAJ], [60, MIN7], [56, MAJ7], [58, SUS], [63, MAJ], [55, MIN7], [56, MAJ7], [58, MAJ]], arpI: "piano", leadI: "box",
+      arp: [0, -1, -1, 1, -1, -1, 2, -1, -1, 1, -1, -1, 3, -1, -1, -1], lead: [[0, 2, 3], [3, 1, 3], [6, 3, 6]] },
+    { bpm: 90, echo: 0.16, chords: [[55, ADD9], [60, MAJ7], [52, MIN7], [62, MAJ], [55, ADD9], [60, MAJ7], [57, MIN7], [62, SUS]], arpI: "box", leadI: "marimba",
+      arp: [0, 1, 2, -1, 3, -1, 2, -1, 0, 1, 2, -1, 3, -1, 1, -1], lead: [[0, 2, 2], [4, 3, 2], [8, 1, 4], [12, 2, 4]], hat: [2, 6, 10, 14] },
+  ];
+  STAGES.forEach(function (st, i) {
+    [0, 1].forEach(function (v) {
+      // 第6問〜第10問は、同じ雰囲気を保ちつつ、調を上げて楽器を入れ替えた別の曲に
+      var up = v ? [2, 3, -2, 2, 3][i] : 0;
+      TRACKS["play" + (i + 1 + v * 5)] = {
+        bpm: st.bpm + (v ? 6 : 0), master: 0.9, echo: st.echo, waves: true,
+        chords: st.chords.map(function (c) { return [c[0] + up, c[1]]; }),
+        pad: { type: "sine", vol: 0.032, oct: -12, voices: 3, detune: 7 },
+        arp: { inst: v ? st.leadI : st.arpI, vol: 0.03, oct: 12, steps: st.arp },
+        lead: { inst: v ? st.arpI : st.leadI, vol: 0.032, oct: 24, every: v ? 1 : 2, notes: st.lead },
+        bass: { vol: 0.045, steps: v ? [0, 6, 8] : [0, 8] },
+        hat: st.hat ? { vol: 0.012, steps: st.hat } : null,
+      };
+    });
+  });
 
   var ctx = null, master = null, current = null, wanted = null, enabled = true;
   var timer = null, nextTime = 0, step = 0, bar = 0, wavesNode = null, echoIn = null, airNode = null, duckNode = null;
