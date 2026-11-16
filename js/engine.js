@@ -65,6 +65,11 @@
     return "normal";
   }
 
+  function luck(hist, id) {
+    var h = 2166136261, s = hist + "|" + id;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h;
+  }
   function evalCond(c, state) {
     if (!c) return true;
     if (c.all) return c.all.every(function (x) { return evalCond(x, state); });
@@ -72,6 +77,7 @@
     if (c.flag) return !!state.flags[c.flag];
     if (c.notFlag) return !state.flags[c.notFlag];
     if (c.mode) return modeOf(state) === c.mode;
+    if (c.chance) return luck(state.hist || "", state.evId || "") % c.chance === 0;
     if (c.stat) {
       var v = state.stats[c.stat];
       if (c.lt !== undefined && !(v < c.lt)) return false;
@@ -193,6 +199,7 @@
     }
     D.events.forEach(function (ev) {
       if (ev.beforeRound !== roundNo) return;
+      state.evId = ev.id;
       if (!evalCond(ev.when, state)) return;
       var delta = applyEffects(state, ev.effects);
       (ev.addFlags || []).forEach(function (f) { state.flags[f] = true; });
@@ -411,6 +418,7 @@
     var steps = [];
     for (var i = 0; i < history.length; i++) {
       var roundNo = i + 1;
+      state.hist = history.slice(0, i).join("");
       var events = applyEvents(state, roundNo);
       var q = resolveRound(state, roundNo);
       var res = applyChoice(state, q, history[i]);
@@ -432,7 +440,7 @@
 
     var out = { history: history, steps: steps, state: state };
     if (history.length < TOTAL_ROUNDS) {
-      var probe = { stats: clone(state.stats), flags: clone(state.flags), minFund: state.minFund, crisisSeen: state.crisisSeen };
+      var probe = { stats: clone(state.stats), flags: clone(state.flags), minFund: state.minFund, crisisSeen: state.crisisSeen, hist: history.join("") };
       var nextEvents = applyEvents(probe, history.length + 1);
       var nq = resolveRound(probe, history.length + 1);
       out.next = {

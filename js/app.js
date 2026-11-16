@@ -491,9 +491,15 @@
       ["click", "touchstart", "touchend", "pointerdown"].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); if (t === "click") e.preventDefault(); }, { passive: t !== "click" }); });
       document.body.appendChild(el);
       if (o.sound) S.play(o.sound);
+      // 場面ごとの音（工事の場面は工事の音がすでに鳴るので除く）
+      var ks = "k-" + o.kind;
+      if (!/^(build|annex|grow|repair)$/.test(o.kind) && S.has && S.has(ks)) setTimeout(function () { S.play(ks); }, o.event ? 380 : 180);
+      if (/cut-big/.test(o.extraClass || "")) S.play("k-fireworks");
+      var hitAt = o.kind === "build" ? 2600 : /cut-resize/.test(o.extraClass || "") ? 1550 : o.event ? 800 : 1350;
+      if (o.hitSound) setTimeout(function () { S.play(o.hitSound); }, Math.max(0, hitAt - 650));
       // iPhoneの振動は、大きな変化のときだけ（「ドン」の瞬間に合わせる）
       if (power !== "small" && !reduce && M.native) {
-        var hit = o.kind === "build" ? 2600 : /cut-resize/.test(o.extraClass || "") ? 1550 : o.event ? 800 : 1350;
+        var hit = hitAt;
         setTimeout(function () { M.native.haptic(power === "big" ? "impact-heavy" : "impact-light"); }, hit);
       }
       setTimeout(function () {
@@ -539,7 +545,8 @@
     var power = kind === "build" || fa !== fb || change >= 0.15 || Math.abs(jump) >= 2 || (after.scale >= 5 && jump > 0) ? "big"
       : change >= 0.05 || jump !== 0 || ["annex", "grow", "shrink"].indexOf(kind) >= 0 ? "mid" : "small";
     return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms, power: power,
-      sound: kind === "build" ? "construct" : kind === "annex" || kind === "grow" || kind === "repair" ? "constructShort" : null });
+      sound: kind === "build" ? "construct" : kind === "annex" || kind === "grow" || kind === "repair" ? "constructShort" : null,
+      hitSound: kind === "build" ? null : fa > fb ? "k-floor" : wa > wb * 1.03 ? "k-grow-up" : wa < wb * 0.97 ? "k-shrink" : null });
   }
 
   /* 途中のイベント（「第○問の前に…」）の演出 */
@@ -547,6 +554,7 @@
     ev_loan_payment: "coins-out", ev_delay_fans: "crowd", ev_nature_access: "bus", ev_veteran_notice: "sparkle", ev_reliable_saves: "sparkle",
     ev_bigfish_crowd: "crowd", ev_bigfish_planned: "swim-big", ev_rookie_growth: "staff", ev_tourist_season: "crowd", ev_overwork: "rain",
     ev_deep_breeding: "swim-jelly", ev_small_fans: "crowd", ev_campus_collab: "sparkle", ev_crisis: "storm",
+    ev_r2_land_price: "coins-out", ev_r2_sea_survey: "swim-small", ev_r2_students: "crowd", ev_r2_ground: "storm", ev_r3_bigfish_news: "swim-big", ev_r3_donation: "coins", ev_r3_typhoon: "storm", ev_r4_acrylic: "coins-out", ev_r4_tv: "crowd", ev_r4_fisher: "swim-small", ev_r5_rate: "coins-out", ev_r5_leak: "rain", ev_r5_preopen: "crowd", ev_r6_viral: "hearts", ev_r6_heat: "rain", ev_r6_school: "bus", ev_r7_baby: "hearts", ev_r7_blackout: "storm", ev_r7_rival: "bus", ev_r8_award: "sparkle", ev_r8_sick: "rain", ev_r8_festival: "crowd", ev_r9_quit: "rain", ev_r9_paper: "sparkle", ev_r9_rain: "rain", ev_r10_letters: "hearts", ev_r10_typhoon: "storm", ev_r10_celeb: "crowd",
   };
   function eventCaption(e) {
     var d = e.delta || {}, parts = [];
