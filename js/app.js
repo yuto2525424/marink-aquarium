@@ -173,8 +173,11 @@
       "</section>";
   }
 
+  function bgm(name) { if (M.bgm) M.bgm.play(name); }
+
   function renderTitle() {
     topbar(false);
+    bgm("title");
     var saved = load();
     var demo = { location: "tourist", main: "big", bigFish: "full", tanks: "big", staffStyle: "veteran", price: "mid", scale: 4, newWing: false, lab: false, conservation: false, alliance: false, mega: false, reservation: false, renewed: false, care: false, closed: false, reorg: false, crowd: 7, mood: "bright" };
     var resume = saved.length > 0 && saved.length < 10
@@ -223,6 +226,7 @@
   var NAME_IDEAS = ["まりんく水族館", "うみかぜ水族館", "さんごの森アクアリウム", "ほしぞら水族館", "なみおと館", "あおいうみ水族館", "ぷかぷか水族館", "しおさい水族館", "ゆめのうみ水族館", "きらめき海の館"];
   function renderNameScreen(prefill) {
     topbar(false);
+    bgm("title");
     var ideas = NAME_IDEAS.slice().sort(function () { return Math.random() - 0.5; }).slice(0, 4);
     show(
       '<section class="name-screen">' +
@@ -281,6 +285,7 @@
   }
 
   function renderEvents(next) {
+    if (next.events.some(function (e) { return e.mood === "crisis"; })) bgm("crisis");
     if (!next.__played) {
       next.__played = true;
       playEventCuts(history.slice(), next.events).then(function () { renderEvents(next); });
@@ -311,6 +316,7 @@
   }
 
   function renderQuestion(q) {
+    bgm(q.mode === "crisis" ? "crisis" : "play");
     var opts = q.options.map(function (o) {
       return '<button class="option" type="button" data-id="' + o.id + '">' +
         '<span class="option__badge" aria-hidden="true">' + o.id + "</span>" +
@@ -760,6 +766,8 @@
 
   function renderResult(result, story, shared) {
     current = { result: result, story: story };
+    // 結果の曲：総合評価がC以上ならうれしい曲、D以下はしっとりした曲
+    bgm(["S", "A", "B", "C"].indexOf(M.story.overall(result).rank) >= 0 ? "happy" : "sad");
     topbar(false);
     var art = M.visual.render(result.aquarium, { signText: story.aquariumName, seed: result.resultNumber + 1, id: "res", label: story.aquariumName + "のイラスト" });
     var src = story.source === "ai"
@@ -957,6 +965,40 @@
       return;
     }
     renderTitle();
+    opening();
+  }
+
+  /* ───── オープニング：水の中の光と泡から、ふわーっと始まる ─────
+   * スマホは画面に触れるまで音を出せないので、最初のタップでBGMもふわっと流れ始める */
+  function opening() {
+    var el = document.createElement("div");
+    el.className = "opening";
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", "タップしてはじめる");
+    var bubbles = "";
+    for (var i = 0; i < 18; i++) bubbles += '<i style="left:' + ((i * 37) % 100) + "%;width:" + (6 + (i % 5) * 4) + "px;height:" + (6 + (i % 5) * 4) + "px;animation-delay:" + (i * 0.35).toFixed(2) + "s;animation-duration:" + (5 + (i % 4)) + 's"></i>';
+    el.innerHTML = '<div class="opening__rays"></div><div class="opening__bubbles">' + bubbles + "</div>" +
+      '<div class="opening__inner"><img class="opening__icon" src="assets/icon-512.png" alt="" width="132" height="132">' +
+      '<p class="opening__en">MARINK AQUARIUM</p><p class="opening__ja">運命の館長</p>' +
+      '<p class="opening__tap">画面をタップしてはじめる</p></div>';
+    document.body.appendChild(el);
+    document.body.classList.add("is-opening");
+    var done = false;
+    function go() {
+      if (done) return;
+      done = true;
+      if (M.bgm) M.bgm.play("title");
+      el.classList.add("is-leaving");
+      document.body.classList.remove("is-opening");
+      document.body.classList.add("is-intro");
+      setTimeout(function () { el.remove(); }, 1600);
+      setTimeout(function () { document.body.classList.remove("is-intro"); }, 2600);
+    }
+    // 少し眺めてからでないと進まない（ふわっと出てくる途中で飛ばさないように）
+    setTimeout(function () {
+      el.addEventListener("click", go);
+      el.classList.add("is-ready");
+    }, 900);
   }
 
   init();

@@ -1,6 +1,6 @@
 /*
  * 効果音（Web Audio で合成。音声ファイルは使っていません）
- * BGMは未実装です。
+ * BGMは bgm.js（同じ音声の仕組みを使い、オン・オフも共通）
  */
 (function (g) {
   var M = (g.MARINK = g.MARINK || {});
@@ -51,10 +51,12 @@
       if (enabled && SFX[name]) { try { SFX[name](); } catch (e) {} }
     },
     isOn: function () { return enabled; },
+    ctx: ac,
     toggle: function () {
       enabled = !enabled;
       try { localStorage.setItem("marink-sound", enabled ? "on" : "off"); } catch (e) {}
       if (enabled) SFX.tap();
+      if (M.bgm) M.bgm.setEnabled(enabled);
       return enabled;
     },
   };
