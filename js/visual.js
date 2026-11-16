@@ -248,46 +248,82 @@
     if (dark) out += '<rect x="194" y="' + (gy - 19) + '" width="12" height="8" fill="#fbf8f0" transform="rotate(-6 200 ' + (gy - 15) + ')"/>';
     else out += '<path d="M200 ' + (gy - 25) + " V" + gy + '" stroke="#e6d6c2" stroke-width="1"/><path d="M193 ' + (gy - 12) + " l5 -8 M195 " + (gy - 5) + ' l6 -10" stroke="#fff" stroke-width="1.2" opacity=".7"/><circle cx="198" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/><circle cx="202" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/>';
 
-    // 上の階：派手になるほど、展望フロアが1階ずつ積み上がっていく
-    var floors = floorsOf(cfg), FH = 0, b_domeW = 0;
-    if (floors) {
-      var topW = W * (0.8 - (floors - 1) * 0.13);
-      var domeW = (cfg.scale || 0) >= 6 ? Math.min(W * 0.42, topW * 0.8) : 0;
-      var fh = Math.min(19, (gy - H - 14 - domeW * 0.42) / floors);
-      for (var fl = 0; fl < floors; fl++) {
-        var fw = W * (0.8 - fl * 0.13), fx = 200 - fw / 2, fy = gy - H - fh * (fl + 1);
-        var f = '<rect x="' + fx + '" y="' + fy + '" width="' + fw + '" height="' + (fh + 1) + '" rx="3" fill="' + (dark ? "#b9bcc4" : fl % 2 ? "#f3efe6" : "#faf7f0") + '"/>' +
-          '<rect x="' + (fx + 5) + '" y="' + (fy + fh * 0.25) + '" width="' + (fw - 10) + '" height="' + (fh * 0.5) + '" rx="2" fill="' + glass + '"/>' +
-          '<rect x="' + (fx - 3) + '" y="' + (fy - 1.5) + '" width="' + (fw + 6) + '" height="3" rx="1.5" fill="' + (dark ? "#8f939d" : ["#5fb0c2", "#f2a79c", "#7cc0cf", "#f3d27a"][fl]) + '"/>';
-        for (var mw = 1; mw < 6; mw++) f += '<rect x="' + (fx + 5 + (fw - 10) * mw / 6) + '" y="' + (fy + fh * 0.25) + '" width="1.2" height="' + (fh * 0.5) + '" fill="#fff" opacity=".7"/>';
-        if (fl === floors - 1 && !dark) f += '<rect x="199" y="' + (fy - 16) + '" width="2" height="15" fill="#9aa6b4"/><circle cx="200" cy="' + (fy - 17) + '" r="2.4" fill="#f2a79c"/>';
-        out += '<g class="mk-x mk-x-floor' + (fl + 1) + '">' + f + "</g>";
-      }
-      FH = fh * floors;
-      b_domeW = domeW;
-    }
+    // 選んだ道ごとの外観テーマ（壁・屋根・足元の帯の色が、選ぶたびに変わる）
+    if (!dark) out = themeColors(cfg, out);
 
-    // 看板
-    var sy = gy - H - (cfg.main === "small" ? 34 : cfg.main === "deep" ? H * 0.3 + 2 : 26);
-    if (cfg.main === "deep") sy = gy - H * 0.55 - 4;
-    if ((cfg.scale || 0) >= 6 && !cfg.closed) sy = Math.min(sy, gy - H - FH - 4 - W * 0.18 - 12); // ガラスドームの上に看板
-    if (FH) sy = gy - H + 12; // 上に階があるときは、看板を本館の正面に
     // 看板の幅と文字の大きさは名前の長さに合わせる
     var len = opts.signText ? Array.from(String(opts.signText)).length : 10;
     var fsz = len <= 12 ? 7.5 : len <= 16 ? 6.6 : 5.8;
     var sw = Math.max(96, Math.min(190, len * fsz + 22));
-    if (cfg.damage >= 9) out += '<g transform="rotate(' + (cfg.damage >= 10 ? 9 : 5) + " " + (200 + sw / 2) + " " + sy + ')">';
-    out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="' + (dark ? "#9aa1ae" : "#fffaf0") + '" stroke="' + (dark ? "#7c8494" : "#f2a79c") + '" stroke-width="1.5"/>';
-    if (!dark) out += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="#fff6c9" opacity=".35"/>';
-    if (opts.signText) {
-      out += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="' + fsz + '" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
+
+    // 上の階：派手になるほど、展望フロアが1階ずつ積み上がっていく（1階目の帯が看板の場所になる）
+    var roofTop = cfg.main === "deep" ? gy - H * 1.25 : gy - H;
+    var floors = floorsOf(cfg), FH = 0, b_domeW = 0, signY = null;
+    if (floors) {
+      var room = roofTop - 14;
+      var dome0 = (cfg.scale || 0) >= 6 ? W * 0.42 * 0.42 : 0;
+      floors = Math.max(1, Math.min(floors, Math.floor((room - dome0) / 15)));
+      var topW = W * (0.8 - (floors - 1) * 0.13);
+      var domeW = (cfg.scale || 0) >= 6 ? Math.min(W * 0.42, topW * 0.8) : 0;
+      var fh = Math.max(15, Math.min(20, (room - domeW * 0.42) / floors));
+      for (var fl = 0; fl < floors; fl++) {
+        var fw = fl === 0 ? Math.min(392, Math.max(W * 0.8, sw + 14)) : W * (0.8 - fl * 0.13);
+        var fh0 = Math.max(fh, 19), fx = 200 - fw / 2, fy = roofTop - fh0 - fh * fl, fhh = fl === 0 ? fh0 : fh;
+        var f = '<rect x="' + fx + '" y="' + fy + '" width="' + fw + '" height="' + (fhh + 1) + '" rx="3" fill="' + (dark ? "#b9bcc4" : fl % 2 ? "#f3efe6" : "#faf7f0") + '"/>' +
+          '<rect x="' + (fx - 3) + '" y="' + (fy - 1.5) + '" width="' + (fw + 6) + '" height="3" rx="1.5" fill="' + (dark ? "#8f939d" : ["#5fb0c2", "#f2a79c", "#7cc0cf", "#f3d27a"][fl]) + '"/>';
+        if (fl > 0) {
+          f += '<rect x="' + (fx + 5) + '" y="' + (fy + fhh * 0.25) + '" width="' + (fw - 10) + '" height="' + (fhh * 0.5) + '" rx="2" fill="' + glass + '"/>';
+          for (var mw = 1; mw < 6; mw++) f += '<rect x="' + (fx + 5 + (fw - 10) * mw / 6) + '" y="' + (fy + fhh * 0.25) + '" width="1.2" height="' + (fhh * 0.5) + '" fill="#fff" opacity=".7"/>';
+        } else {
+          signY = fy + fhh / 2 + 0.5;
+          // 看板の両わきの小窓
+          var sideW = (fw - sw) / 2 - 8;
+          if (sideW > 8) {
+            f += '<rect x="' + (fx + 4) + '" y="' + (fy + fhh * 0.25) + '" width="' + sideW + '" height="' + (fhh * 0.5) + '" rx="2" fill="' + glass + '"/>';
+            f += '<rect x="' + (fx + fw - 4 - sideW) + '" y="' + (fy + fhh * 0.25) + '" width="' + sideW + '" height="' + (fhh * 0.5) + '" rx="2" fill="' + glass + '"/>';
+          }
+        }
+        if (fl === floors - 1 && !dark && !domeW) f += '<rect x="199" y="' + (fy - 16) + '" width="2" height="15" fill="#9aa6b4"/><circle cx="200" cy="' + (fy - 17) + '" r="2.4" fill="#f2a79c"/>';
+        out += '<g class="mk-x mk-x-floor' + (fl + 1) + '">' + f + "</g>";
+      }
+      FH = Math.max(fh, 19) + fh * (floors - 1);
+      b_domeW = domeW;
     }
-    if (cfg.damage >= 9) out += "</g>";
-    return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw, FH: FH, domeW: b_domeW };
+
+    // 看板：上の階があれば1階目の帯に。なければ屋根の上の空いているところに
+    var sy;
+    if (signY !== null) sy = signY;
+    else if (cfg.main === "small") sy = gy - H - 34;
+    else if (cfg.main === "deep") sy = gy - H * 1.3 - 12;
+    else sy = gy - H - 26;
+    if (signY === null && (cfg.scale || 0) >= 6 && !cfg.closed) sy = Math.min(sy, gy - H - 4 - W * 0.18 - 12);
+    sy = Math.max(12, sy);
+    // 看板は、ほかの飾りに隠れないよう、いちばん手前に別に描く
+    var signSvg = "";
+    if (cfg.damage >= 9) signSvg += '<g transform="rotate(' + (cfg.damage >= 10 ? 9 : 5) + " " + (200 + sw / 2) + " " + sy + ')">';
+    signSvg += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="' + (dark ? "#9aa1ae" : "#fffaf0") + '" stroke="' + (dark ? "#7c8494" : "#f2a79c") + '" stroke-width="1.5"/>';
+    if (!dark) signSvg += '<rect x="' + (200 - sw / 2) + '" y="' + (sy - 9) + '" width="' + sw + '" height="16" rx="8" fill="#fff6c9" opacity=".35"/>';
+    if (opts.signText) {
+      signSvg += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="' + fsz + '" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
+    }
+    if (cfg.damage >= 9) signSvg += "</g>";
+    return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw, FH: FH, domeW: b_domeW, top: roofTop - FH, signSvg: signSvg };
   }
 
   /* ───── 選択ごとに増える外観パーツ（1回選ぶたびに、見た目がどこか変わる） ─────
    * それぞれ <g class="mk-x mk-x-フラグ名"> で包む。変化アニメーションで「新しく付いた部分」だけを目立たせるため */
+  /* 選んだ道ごとの外観テーマ
+   * 壁の色＝第5問（スタッフ）、屋根・アクセント＝第3問（水槽）、足元の帯＝第6問（入館料） */
+  function themeColors(cfg, svg) {
+    var map = {};
+    var wall = has(cfg, "staff_vet") ? "#f3e3c9" : has(cfg, "staff_rookie") ? "#fdeef3" : has(cfg, "staff_elite") ? "#e8f0f7" : null;
+    if (wall) ["#f8f4ec", "#fbf6ee", "#eef2f6", "#f6f2ea"].forEach(function (c) { map[c] = wall; });
+    var roof = has(cfg, "big_tanks") ? ["#3f7fb0", "#5a8fd0", "#2c5d8f"] : has(cfg, "variety") ? ["#f29e6b", "#f2b35e", "#7a5fa8"] : has(cfg, "reliable") ? ["#5fae8c", "#8cc59a", "#2f6f6a"] : null;
+    if (roof) { map["#5fb0c2"] = roof[0]; map["#f2a79c"] = roof[1]; map["#3f5f8e"] = roof[2]; }
+    var band = has(cfg, "price_high") ? "#d9b35a" : has(cfg, "price_low") ? "#f3a8a0" : has(cfg, "price_mid") ? "#9fc7d3" : null;
+    if (band) map["#d8cfc0"] = band;
+    return svg.replace(/#[0-9a-fA-F]{6}\b/g, function (c) { return map[c.toLowerCase()] || c; });
+  }
   function has(cfg, f) { return !!(cfg.flags && cfg.flags.indexOf(f) >= 0); }
   function xg(flag, svg) { return '<g class="mk-x mk-x-' + flag + '">' + svg + "</g>"; }
   function balloon(x, y, c) {
@@ -296,6 +332,63 @@
   function extras(cfg, b) {
     if (cfg.closed) return "";
     var gy = 214, x0 = b.x0, W = b.W, H = b.H, out = "", i, s;
+    // 第3問：大きな水槽 → 建物の横に、ガラスの円柱水槽タワー
+    if (has(cfg, "big_tanks")) {
+      var tx = Math.max(6, x0 - 26), th = Math.max(46, H * 0.95);
+      s = '<rect x="' + tx + '" y="' + (gy - th) + '" width="22" height="' + th + '" rx="11" fill="#bfe6f2" stroke="#fff" stroke-width="1.6"/>' +
+        '<rect x="' + (tx + 3) + '" y="' + (gy - th + 6) + '" width="4" height="' + (th - 14) + '" rx="2" fill="#fff" opacity=".55"/>' +
+        '<ellipse cx="' + (tx + 11) + '" cy="' + (gy - th + 2) + '" rx="12" ry="3.4" fill="#3f7fb0"/>';
+      for (i = 0; i < 4; i++) s += fish(tx + 11 + (i % 2 ? 3 : -3), gy - th * (0.25 + i * 0.18), 0.32, ["#f4a35d", "#f2cf63", "#e9827a", "#7fbf9b"][i], i % 2 === 0);
+      out += xg("big_tanks", s);
+    }
+    // 第4問：規模を縮小 → 手づくりの木の看板と鉢植え
+    if (has(cfg, "downsized")) {
+      var dx = Math.min(372, x0 + W + 8);
+      out += xg("downsized", '<g><rect x="' + dx + '" y="' + (gy - 22) + '" width="22" height="12" rx="1" fill="#d9b58c" stroke="#a3785a" stroke-width=".8"/><rect x="' + (dx + 10) + '" y="' + (gy - 10) + '" width="2" height="10" fill="#a3785a"/>' +
+        '<text x="' + (dx + 11) + '" y="' + (gy - 14.5) + '" font-size="4.2" font-weight="700" text-anchor="middle" fill="#6d4e36" font-family="Zen Maru Gothic, sans-serif">てづくり</text>' +
+        '<path d="M' + (dx - 8) + " " + gy + " l1.5 -5 h5 l1.5 5 Z" + '" fill="#c9805a"/><circle cx="' + (dx - 4) + '" cy="' + (gy - 7) + '" r="3.6" fill="#8cc59a"/></g>');
+    }
+    // 第5問：スタッフで、建物の雰囲気そのものが変わる
+    if (has(cfg, "staff_vet")) {
+      // ベテラン：落ち着いたレンガの腰壁と、入口の行灯
+      s = "";
+      for (i = 0; i < 3; i++) s += '<rect x="' + (x0 + 3) + '" y="' + (gy - 8 - i * 6) + '" width="' + (W - 6) + '" height=".9" fill="#b98a5e" opacity=".45"/>';
+      for (i = 0; i < Math.floor(W / 14); i++) s += '<rect x="' + (x0 + 6 + i * 14 + (i % 2) * 5) + '" y="' + (gy - 19) + '" width=".9" height="12" fill="#b98a5e" opacity=".35"/>';
+      s += '<rect x="172" y="' + (gy - 18) + '" width="6" height="10" rx="1.5" fill="#fff1d6" stroke="#8f6c50" stroke-width=".8"/><rect x="222" y="' + (gy - 18) + '" width="6" height="10" rx="1.5" fill="#fff1d6" stroke="#8f6c50" stroke-width=".8"/>';
+      out += xg("staff_vet", s);
+    }
+    if (has(cfg, "staff_rookie")) {
+      // 新人：手づくりのカラフルな三角旗
+      s = '<path d="M' + (x0 + 4) + " " + (gy - H + 5) + " Q200 " + (gy - H + 14) + " " + (x0 + W - 4) + " " + (gy - H + 5) + '" stroke="#9aa6b4" stroke-width=".6" fill="none"/>';
+      var nb = Math.max(4, Math.floor(W / 12));
+      for (i = 0; i < nb; i++) {
+        var bx = x0 + 6 + (W - 12) * i / (nb - 1), by = gy - H + 5 + Math.sin(i / (nb - 1) * Math.PI) * 6.5;
+        s += '<path d="M' + (bx - 3) + " " + by + " L" + (bx + 3) + " " + by + " L" + bx + " " + (by + 6) + ' Z" fill="' + ["#f2a79c", "#f3d27a", "#7cc0cf", "#9ccf9f", "#c7a6d9"][i % 5] + '"/>';
+      }
+      out += xg("staff_rookie", s);
+    }
+    if (has(cfg, "staff_elite")) {
+      // 専門家チーム：銀色のフィンと、屋上のアンテナ
+      s = '<rect x="' + (x0 + 9) + '" y="' + (gy - H * 0.85) + '" width="3.5" height="' + (H * 0.78) + '" rx="1.5" fill="#b8c7d6"/><rect x="' + (x0 + W - 12.5) + '" y="' + (gy - H * 0.85) + '" width="3.5" height="' + (H * 0.78) + '" rx="1.5" fill="#b8c7d6"/>' +
+        '<rect x="' + (x0 + W - 22) + '" y="' + (gy - H - 14) + '" width="1.4" height="14" fill="#8a95a8"/><path d="M' + (x0 + W - 30) + " " + (gy - H - 18) + " a9 5 0 0 0 16 4" + '" fill="#dfe7ef" stroke="#8a95a8" stroke-width=".8"/><circle cx="' + (x0 + W - 21) + '" cy="' + (gy - H - 15) + '" r="1.2" fill="#e85d4a"/>';
+      out += xg("staff_elite", s);
+    }
+    // 第8問：営業時間延長 → 建物にそって電球のガーランド
+    if (has(cfg, "extended")) {
+      s = "";
+      for (i = 0; i <= 14; i++) {
+        var lx = x0 + 2 + (W - 4) * i / 14, ly = gy - H + 3 + Math.sin(i / 14 * Math.PI) * 5;
+        s += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="3.4" fill="#ffe7a3" opacity=".35"/><circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="1.5" fill="#ffd45e"/>';
+      }
+      out += xg("extended", s);
+    }
+    // 第10問：身の丈に合った規模へ → 手入れの行き届いた花の庭とベンチ
+    if (has(cfg, "shrink_end")) {
+      s = "";
+      for (i = 0; i < 7; i++) s += '<circle cx="' + (x0 - 30 + i * 4.5) + '" cy="' + (gy - 3 - (i % 2) * 2) + '" r="2" fill="' + ["#f2a79c", "#f3d27a", "#c7a6d9", "#ffffff"][i % 4] + '"/>';
+      s += '<rect x="' + (x0 - 32) + '" y="' + (gy - 2) + '" width="32" height="2.5" rx="1" fill="#8cc59a"/><rect x="' + (x0 + W + 6) + '" y="' + (gy - 8) + '" width="18" height="3" rx="1" fill="#c9a17a"/><rect x="' + (x0 + W + 7) + '" y="' + (gy - 5) + '" width="1.5" height="5" fill="#a3785a"/><rect x="' + (x0 + W + 21.5) + '" y="' + (gy - 5) + '" width="1.5" height="5" fill="#a3785a"/>';
+      out += xg("shrink_end", s);
+    }
     // 第3問：たくさんの種類 → 外壁に色とりどりの小窓
     if (has(cfg, "variety")) {
       s = "";
@@ -393,7 +486,7 @@
       out += xg("cozy", '<g><rect x="' + (x0 - 20) + '" y="196" width="16" height="12" rx="1.5" fill="#d9b58c" stroke="#a3785a" stroke-width=".8"/><rect x="' + (x0 - 13) + '" y="208" width="2" height="7" fill="#a3785a"/>' +
         '<text x="' + (x0 - 12) + '" y="204" font-size="4.4" font-weight="700" text-anchor="middle" fill="#6d4e36" font-family="Zen Maru Gothic, sans-serif">ようこそ</text>' +
         '<g><path d="M181 214 l2 -6 h6 l2 6 Z" fill="#c9805a"/><circle cx="186" cy="205" r="4" fill="#79b58e"/><path d="M211 214 l2 -6 h6 l2 6 Z" fill="#c9805a"/><circle cx="216" cy="205" r="4" fill="#8cc59a"/></g>' +
-        '<rect x="' + (x0 + W - 12) + '" y="' + (gy - H * 0.55) + '" width="5" height="7" rx="2" fill="#ffd98a" stroke="#a3785a" stroke-width=".6"/></g>');
+        '<rect x="226" y="' + (gy - 15) + '" width="1.2" height="15" fill="#a3785a"/><rect x="223.6" y="' + (gy - 22) + '" width="6" height="8" rx="2" fill="#ffd98a" stroke="#a3785a" stroke-width=".6"/></g>');
     }
     if (t >= 3) {
       // 屋根の旗
@@ -419,7 +512,7 @@
     }
     if (t >= 6) {
       // 屋根の上の大きなガラスドームと花火
-      var dw = b.domeW || W * 0.42, dy = gy - H - (b.FH || 0) - 4;
+      var dw = b.domeW || W * 0.42, dy = (b.top || gy - H) - 4;
       var dome = '<g><path d="M' + (200 - dw / 2) + " " + dy + " A" + dw / 2 + " " + dw * 0.42 + " 0 0 1 " + (200 + dw / 2) + " " + dy + ' Z" fill="#cfeef6" stroke="#fff" stroke-width="1.5" opacity=".92"/>';
       for (i = 1; i < 5; i++) dome += '<path d="M' + (200 - dw / 2 + (dw / 5) * i) + " " + dy + " Q200 " + (dy - dw * 0.5) + " " + (200 - dw / 2 + (dw / 5) * i) + " " + dy + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/>';
       dome += '<path d="M' + (200 - dw * 0.36) + " " + (dy - dw * 0.18) + " Q200 " + (dy - dw * 0.3) + " " + (200 + dw * 0.36) + " " + (dy - dw * 0.18) + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/></g>';
@@ -710,7 +803,7 @@
       body += plannedSite() + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
     } else {
       var b = mainBuilding(cfg, P, opts);
-      body += '<g class="mk-cluster"><g class="mk-annex">' + annexes(cfg, b) + "</g>" + '<g class="mk-bldg">' + b.svg + damageLayer(cfg, b, R) + nightLights(cfg, b) + "</g>" + '<g class="mk-extra">' + extras(cfg, b) + tierDecor(cfg, b) + "</g></g></g>" +
+      body += '<g class="mk-cluster"><g class="mk-annex">' + annexes(cfg, b) + "</g>" + '<g class="mk-bldg">' + b.svg + damageLayer(cfg, b, R) + nightLights(cfg, b) + "</g>" + '<g class="mk-extra">' + extras(cfg, b) + tierDecor(cfg, b) + "</g>" + '<g class="mk-sign">' + b.signSvg + "</g></g></g>" +
         '<g class="mk-staff">' + staff(cfg) + "</g>" + '<g class="mk-people">' + people(cfg, R) + "</g>" + '<g class="mk-sea">' + sea(cfg, P, R) + "</g>";
     }
     if (cfg.renewed && !cfg.closed) body += '<g fill="#fffbe0"><path d="M150 140 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 Z"/><path d="M262 128 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 Z"/></g>';

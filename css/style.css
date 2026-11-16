@@ -645,7 +645,7 @@ details.record[open] summary::after { content: "－"; }
 /* 建設：街並み（ビル・木・タワー・船）が順番に立ち上がってから、水族館がせり上がる */
 .cut-build { --cut-swap: .35s; }
 .cut-build .cutscene__after .mk-city { animation: cutRise .75s cubic-bezier(.25,.85,.3,1.1) calc(var(--d, 0s) + .45s) both; }
-.cut-build .cutscene__after .mk-bldg, .cut-build .cutscene__after .mk-annex, .cut-build .cutscene__after .mk-extra { animation: cutRise 1.3s cubic-bezier(.25,.85,.3,1.08) 1.75s both; }
+.cut-build .cutscene__after .mk-bldg, .cut-build .cutscene__after .mk-annex, .cut-build .cutscene__after .mk-extra, .cut-build .cutscene__after .mk-sign { animation: cutRise 1.3s cubic-bezier(.25,.85,.3,1.08) 1.75s both; }
 .cut-build .cutscene__after .mk-people, .cut-build .cutscene__after .mk-staff { animation: cutPopIn .5s ease 3s both; }
 .cut-build .cutscene__bar span { animation-duration: 3.8s; }
 .cut-build .cutscene__frame { animation: cutPop .45s cubic-bezier(.2,.9,.3,1.2) both, cutZoom 3.6s ease-in-out .2s both; }
@@ -814,3 +814,5 @@ body.is-opening { overflow: hidden; }
 /* 新しく積み上がった階は、上からドスンと乗る */
 .cutscene__after .mk-x[class*="mk-x-floor"].cut-new { animation: floorDrop .7s cubic-bezier(.3,1.4,.5,1) calc(var(--hit) - .15s) both; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes floorDrop { 0% { opacity: 0; transform: translateY(-60px) scaleY(1.2); } 70% { opacity: 1; transform: translateY(3px) scaleY(.92); } 100% { opacity: 1; transform: none; } }
+
+.cutscene svg .mk-sign { transform-box: fill-box; transform-origin: 50% 100%; }
