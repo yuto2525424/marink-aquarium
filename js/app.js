@@ -520,12 +520,15 @@
     // 派手さの段階が上がった・下がった分の飾りも「ポン」と出す
     for (var t = before.scale + 1; t <= after.scale; t++) added.push("tier" + t);
     if (after.scale <= 1 && (before.scale > 1 || before.empty)) added.push("cozy");
+    // 新しく積み上がった階も「ポン」と出す
+    var fb = M.visual.floorsOf(before), fa = M.visual.floorsOf(after);
+    for (var fl = fb + 1; fl <= fa; fl++) added.push("floor" + fl);
     var extra = [], from = null, caption = k[1];
     var wb = M.visual.widthOf(before), wa = M.visual.widthOf(after);
     if (!before.empty && !after.empty && wb !== wa) {
       extra.push("cut-resize");
       from = (wb / wa).toFixed(3);
-      caption += wa > wb ? "　水族館がひとまわり大きくなった！" : "　こぢんまりとした雰囲気に";
+      caption += fa > fb ? "　上に新しい階が建った！" : fa < fb ? "　上の階をたたんで、身軽に" : wa > wb ? "　水族館がひとまわり大きくなった！" : "　こぢんまりとした雰囲気に";
     }
     if (after.scale >= 5 && after.scale > before.scale) extra.push("cut-big");
     if (from && wa < wb) extra.push("cut-shrinking");
@@ -533,7 +536,7 @@
     var ms = kind === "build" ? 3800 : CUT_MS;
     // 変化の大きさ：建設・大きさが15%以上変わる・飾りが2段階以上変わる → big、少しでも大きさや飾りが変わる → mid
     var change = Math.abs(wa - wb) / Math.max(1, wb), jump = after.scale - before.scale;
-    var power = kind === "build" || change >= 0.15 || Math.abs(jump) >= 2 || (after.scale >= 5 && jump > 0) ? "big"
+    var power = kind === "build" || fa !== fb || change >= 0.15 || Math.abs(jump) >= 2 || (after.scale >= 5 && jump > 0) ? "big"
       : change >= 0.05 || jump !== 0 || ["annex", "grow", "shrink"].indexOf(kind) >= 0 ? "mid" : "small";
     return showCut({ before: before, after: after, kind: kind, label: step.label, caption: caption, newFlags: added, extraClass: extra.join(" "), from: from, ms: ms, power: power,
       sound: kind === "build" ? "construct" : kind === "annex" || kind === "grow" || kind === "repair" ? "constructShort" : null });

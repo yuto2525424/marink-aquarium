@@ -810,3 +810,7 @@ body.is-opening { overflow: hidden; }
 @keyframes sparkFlick { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
 .cut-dust { animation-duration: 1.4s; }
 .cut-reduce .cut-works { display: none; }
+
+/* 新しく積み上がった階は、上からドスンと乗る */
+.cutscene__after .mk-x[class*="mk-x-floor"].cut-new { animation: floorDrop .7s cubic-bezier(.3,1.4,.5,1) calc(var(--hit) - .15s) both; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes floorDrop { 0% { opacity: 0; transform: translateY(-60px) scaleY(1.2); } 70% { opacity: 1; transform: translateY(3px) scaleY(.92); } 100% { opacity: 1; transform: none; } }

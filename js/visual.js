@@ -182,7 +182,7 @@
     // 派手さ（grand）に合わせて、建物の大きさを少しずつ変える
     var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
     var W = widthOf(cfg);
-    var H = Math.round(Math.max(34, Math.min(130, gr >= 0 ? 54 + 76 * Math.tanh(gr / 8) : 54 + 24 * Math.tanh(gr / 4.5))));
+    var H = Math.round(Math.max(34, Math.min(116, gr >= 0 ? 54 + 70 * Math.tanh(gr / 8) : 54 + 24 * Math.tanh(gr / 4.5))));
     var x0 = 200 - W / 2;
     var gy = 214;
     var out = "";
@@ -248,10 +248,30 @@
     if (dark) out += '<rect x="194" y="' + (gy - 19) + '" width="12" height="8" fill="#fbf8f0" transform="rotate(-6 200 ' + (gy - 15) + ')"/>';
     else out += '<path d="M200 ' + (gy - 25) + " V" + gy + '" stroke="#e6d6c2" stroke-width="1"/><path d="M193 ' + (gy - 12) + " l5 -8 M195 " + (gy - 5) + ' l6 -10" stroke="#fff" stroke-width="1.2" opacity=".7"/><circle cx="198" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/><circle cx="202" cy="' + (gy - 8) + '" r=".8" fill="#c9a24a"/>';
 
+    // 上の階：派手になるほど、展望フロアが1階ずつ積み上がっていく
+    var floors = floorsOf(cfg), FH = 0, b_domeW = 0;
+    if (floors) {
+      var topW = W * (0.8 - (floors - 1) * 0.13);
+      var domeW = (cfg.scale || 0) >= 6 ? Math.min(W * 0.42, topW * 0.8) : 0;
+      var fh = Math.min(19, (gy - H - 14 - domeW * 0.42) / floors);
+      for (var fl = 0; fl < floors; fl++) {
+        var fw = W * (0.8 - fl * 0.13), fx = 200 - fw / 2, fy = gy - H - fh * (fl + 1);
+        var f = '<rect x="' + fx + '" y="' + fy + '" width="' + fw + '" height="' + (fh + 1) + '" rx="3" fill="' + (dark ? "#b9bcc4" : fl % 2 ? "#f3efe6" : "#faf7f0") + '"/>' +
+          '<rect x="' + (fx + 5) + '" y="' + (fy + fh * 0.25) + '" width="' + (fw - 10) + '" height="' + (fh * 0.5) + '" rx="2" fill="' + glass + '"/>' +
+          '<rect x="' + (fx - 3) + '" y="' + (fy - 1.5) + '" width="' + (fw + 6) + '" height="3" rx="1.5" fill="' + (dark ? "#8f939d" : ["#5fb0c2", "#f2a79c", "#7cc0cf", "#f3d27a"][fl]) + '"/>';
+        for (var mw = 1; mw < 6; mw++) f += '<rect x="' + (fx + 5 + (fw - 10) * mw / 6) + '" y="' + (fy + fh * 0.25) + '" width="1.2" height="' + (fh * 0.5) + '" fill="#fff" opacity=".7"/>';
+        if (fl === floors - 1 && !dark) f += '<rect x="199" y="' + (fy - 16) + '" width="2" height="15" fill="#9aa6b4"/><circle cx="200" cy="' + (fy - 17) + '" r="2.4" fill="#f2a79c"/>';
+        out += '<g class="mk-x mk-x-floor' + (fl + 1) + '">' + f + "</g>";
+      }
+      FH = fh * floors;
+      b_domeW = domeW;
+    }
+
     // 看板
     var sy = gy - H - (cfg.main === "small" ? 34 : cfg.main === "deep" ? H * 0.3 + 2 : 26);
     if (cfg.main === "deep") sy = gy - H * 0.55 - 4;
-    if ((cfg.scale || 0) >= 6 && !cfg.closed) sy = Math.min(sy, gy - H - 4 - W * 0.18 - 12); // ガラスドームの上に看板
+    if ((cfg.scale || 0) >= 6 && !cfg.closed) sy = Math.min(sy, gy - H - FH - 4 - W * 0.18 - 12); // ガラスドームの上に看板
+    if (FH) sy = gy - H + 12; // 上に階があるときは、看板を本館の正面に
     // 看板の幅と文字の大きさは名前の長さに合わせる
     var len = opts.signText ? Array.from(String(opts.signText)).length : 10;
     var fsz = len <= 12 ? 7.5 : len <= 16 ? 6.6 : 5.8;
@@ -263,7 +283,7 @@
       out += '<text x="200" y="' + (sy + 3) + '" text-anchor="middle" font-size="' + fsz + '" font-weight="700" fill="' + (dark ? "#5d6577" : "#2f4a6b") + '" font-family="Zen Maru Gothic, Hiragino Maru Gothic ProN, sans-serif">' + esc(opts.signText) + "</text>";
     }
     if (cfg.damage >= 9) out += "</g>";
-    return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw };
+    return { svg: out, W: W, H: H, x0: x0, sy: sy, sw: sw, FH: FH, domeW: b_domeW };
   }
 
   /* ───── 選択ごとに増える外観パーツ（1回選ぶたびに、見た目がどこか変わる） ─────
@@ -399,7 +419,7 @@
     }
     if (t >= 6) {
       // 屋根の上の大きなガラスドームと花火
-      var dw = W * 0.42, dy = gy - H - 4;
+      var dw = b.domeW || W * 0.42, dy = gy - H - (b.FH || 0) - 4;
       var dome = '<g><path d="M' + (200 - dw / 2) + " " + dy + " A" + dw / 2 + " " + dw * 0.42 + " 0 0 1 " + (200 + dw / 2) + " " + dy + ' Z" fill="#cfeef6" stroke="#fff" stroke-width="1.5" opacity=".92"/>';
       for (i = 1; i < 5; i++) dome += '<path d="M' + (200 - dw / 2 + (dw / 5) * i) + " " + dy + " Q200 " + (dy - dw * 0.5) + " " + (200 - dw / 2 + (dw / 5) * i) + " " + dy + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/>';
       dome += '<path d="M' + (200 - dw * 0.36) + " " + (dy - dw * 0.18) + " Q200 " + (dy - dw * 0.3) + " " + (200 + dw * 0.36) + " " + (dy - dw * 0.18) + '" stroke="#9fd3e2" stroke-width=".6" fill="none"/></g>';
@@ -701,11 +721,17 @@
     return svg.replace(/id="(skyGrad|seaGrad|glass|glow|wc|paper|wallShade)"/g, 'id="' + id + '-$1"').replace(/url\(#(skyGrad|seaGrad|glass|glow|wc|paper|wallShade)\)/g, "url(#" + id + "-$1)");
   }
 
+  // 上に積む階の数（0〜4）
+  function floorsOf(cfg) {
+    if (!cfg || cfg.closed || cfg.empty || !cfg.main) return 0;
+    var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
+    return Math.max(0, Math.min(4, Math.floor((gr - 2.5) / 2.5) + 1));
+  }
   function widthOf(cfg) {
     var gr = typeof cfg.grand === "number" ? cfg.grand : [ -1.5, -0.5, 0.8, 2.2, 3.6, 5.2, 7 ][cfg.scale || 0];
     // 1段階ごとの変化を大きく（はじめほど大きく変わり、最大でも画面からはみ出さない）
     var w = gr >= 0 ? 96 + 210 * Math.tanh(gr / 8) : 96 + 62 * Math.tanh(gr / 4.5);
     return Math.round(Math.max(40, Math.min(304, w)));
   }
-  M.visual = { render: render, widthOf: widthOf, DAMAGE_NAMES: DAMAGE_NAMES };
+  M.visual = { render: render, widthOf: widthOf, floorsOf: floorsOf, DAMAGE_NAMES: DAMAGE_NAMES };
 })(typeof window !== "undefined" ? window : globalThis);
