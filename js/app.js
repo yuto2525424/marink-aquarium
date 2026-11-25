@@ -147,10 +147,27 @@
     var z = loadZukan();
     var isNew = !z.found[result.endingId];
     z.found[result.endingId] = true;
+    z.memo = z.memo || {};
+    z.memo[result.endingId] = { h: result.history.join(""), n: aqName };
     var o = M.story.overall(result);
     if (!z.best || o.score > z.best.score) z.best = { score: o.score, rank: o.rank };
     try { localStorage.setItem(ZUKAN, JSON.stringify(z)); } catch (e) {}
     return { isNew: isNew, count: Object.keys(z.found).length };
+  }
+
+  /* 図鑑に残した「そのときの選択」。壊れていたり、今の版では別の結末になるものは使わない */
+  function memoOf(id) {
+    var d = (loadZukan().memo || {})[id];
+    var h = d && typeof d.h === "string" ? E.parseHistory(d.h) : null;
+    if (!h || h.length !== 10) return null;
+    var r = E.simulate(h);
+    return r.endingId === id ? { result: r, name: M.story.cleanName(String(d.n || "")) } : null;
+  }
+  function openMemo(id) {
+    var m = memoOf(id);
+    if (!m) return toast("この思い出は開けませんでした");
+    S.play("bubble");
+    renderResult(m.result, M.story.buildStory(m.result, { name: m.name }), true, true);
   }
 
   function guideHtml() {
@@ -159,7 +176,10 @@
     var count = ids.filter(function (k) { return z.found[k]; }).length;
     var grid = ids.map(function (k) {
       var e = D.endings[k];
-      if (z.found[k]) return '<li class="found"><small>' + esc(e.type) + "</small>" + esc(e.name.replace(/エンド$/, "")) + "</li>";
+      if (z.found[k]) {
+        var label = "<small>" + esc(e.type) + "</small>" + esc(e.name.replace(/エンド$/, ""));
+        return memoOf(k) ? '<li class="found has-memo"><button type="button" data-memo="' + k + '">' + label + "</button></li>" : '<li class="found">' + label + "</li>";
+      }
       return '<li class="' + (e.secret ? "secret" : "") + '"><small>' + (e.secret ? "シークレット" : esc(e.type)) + "</small>？？？</li>";
     }).join("");
     return '<div class="guide">' +
@@ -178,6 +198,7 @@
         "<span>大人気なのに、金庫はからっぽ…まさかの閉館!?</span></p></section>" +
       '<section class="card zukan"><div class="zukan__head"><h2 class="section-title" style="margin:0">エンディング図鑑</h2><span class="zukan__count">' + count + " / " + ids.length + "</span></div>" +
         '<ul class="zukan__grid">' + grid + "</ul>" +
+        (count ? '<p class="small-note">▶ のついたエンディングを押すと、そのときの水族館をもう一度見られます。</p>' : "") +
         (z.best ? '<p class="zukan__best">これまでの最高評価：' + z.best.rank + "（" + z.best.score + "点）</p>" : '<p class="small-note">遊ぶと、たどり着いたエンディングがここに登録されます。全部見つけられるかな？</p>') +
       "</section></div>";
   }
@@ -230,7 +251,7 @@
         '<ul class="chips"><li class="chip">約3〜5分</li><li class="chip">全10問・3択</li><li class="chip">無料・ログイン不要</li></ul>' +
         resume +
         '<button class="btn ' + (resume ? 'btn--ghost" style="margin-top:10px"' : 'btn--primary"') + ' id="startBtn" type="button">' + (resume ? "はじめからつくる" : "水族館をつくる！") + "</button>" +
-        '<button class="btn btn--ghost btn--small" id="loadBtn" type="button" style="margin-top:10px">セーブデータ</button>' +
+        '<div class="btn-row" style="margin-top:10px"><button class="btn btn--ghost btn--small" id="loadBtn" type="button">セーブデータ</button><button class="btn btn--ghost btn--small" id="setBtn" type="button">設定</button></div>' +
         guideHtml() +
         '<button class="btn btn--primary" id="startBtn2" type="button" style="margin-top:18px">さっそく水族館をつくる！</button>' +
         installHtml() +
@@ -253,6 +274,10 @@
       S.play("bubble");
       softTransition(function () { renderNameScreen(loadName()); });
     }
+    app.querySelectorAll("[data-memo]").forEach(function (b) {
+      b.addEventListener("click", function () { if (!starting) openMemo(b.getAttribute("data-memo")); });
+    });
+    $("setBtn").addEventListener("click", function () { if (starting) return; S.play("tap"); settingsBox(closeBox); });
     $("loadBtn").addEventListener("click", function () { if (starting) return; S.play("tap"); slotBox("load"); });
     $("startBtn").addEventListener("click", start);
     $("startBtn2").addEventListener("click", start);
@@ -337,6 +362,30 @@
     $("boxYes").addEventListener("click", function () { S.play("bubble"); yes(); });
     $("boxNo").addEventListener("click", function () { S.play("tap"); no(); });
   }
+  function settingsBox(done) {
+    var G = M.settings;
+    function range(k, label) {
+      return '<li><label for="set-' + k + '">' + label + '</label><input id="set-' + k + '" type="range" min="0" max="100" step="5" value="' + G.get(k) + '" data-set="' + k + '"><output>' + G.get(k) + "</output></li>";
+    }
+    function check(k, label, note) {
+      return '<li><label for="set-' + k + '">' + label + (note ? "<small>" + note + "</small>" : "") + '</label><input id="set-' + k + '" type="checkbox"' + (G.get(k) ? " checked" : "") + ' data-set="' + k + '"></li>';
+    }
+    openBox('<h2 class="save-box__title">設定</h2><ul class="set-list">' +
+      '<li><label for="set-sound">音を鳴らす</label><input id="set-sound" type="checkbox"' + (S.isOn() ? " checked" : "") + "></li>" +
+      range("bgm", "BGMの音量") + range("sfx", "効果音の音量") +
+      check("fast", "演出をはやくする", "演出は、タップでも飛ばせます") +
+      (M.native && M.native.isNative ? check("haptic", "振動") : "") +
+      '</ul><button class="btn btn--sea btn--small" id="boxClose" type="button">閉じる</button>');
+    $("boxClose").addEventListener("click", function () { S.play("tap"); done(); });
+    $("set-sound").addEventListener("change", function () {
+      if (this.checked !== S.isOn()) $("soundBtn").setAttribute("aria-pressed", S.toggle() ? "true" : "false");
+    });
+    $("modal").querySelectorAll("[data-set]").forEach(function (el) {
+      var k = el.getAttribute("data-set"), isRange = el.type === "range";
+      if (isRange) el.addEventListener("input", function () { G.set(k, el.value); el.nextElementSibling.textContent = G.get(k); });
+      el.addEventListener("change", function () { G.set(k, isRange ? el.value : el.checked); if (k !== "bgm") S.play("tap"); });
+    });
+  }
   function slotDate(t) {
     var d = new Date(t), p = function (n) { return (n < 10 ? "0" : "") + n; };
     return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
@@ -363,9 +412,10 @@
           (d ? '<button class="save-del" type="button" data-del="' + i + '" aria-label="セーブ' + (i + 1) + 'を消す">消す</button>' : "") + "</li>";
       }).join("") + "</ul>" +
       '<p class="small-note">この端末の中だけに保存されます。途中でやめても、選ぶたびに自動でセーブされるので、次は続きから遊べます。</p>' +
-      (mode === "save" ? '<button class="btn btn--ghost btn--small" id="boxTitle" type="button">タイトルに戻る</button>' : "") +
+      (mode === "save" ? '<div class="btn-row"><button class="btn btn--ghost btn--small" id="boxSet" type="button">設定</button><button class="btn btn--ghost btn--small" id="boxTitle" type="button">タイトルに戻る</button></div>' : "") +
       '<button class="btn btn--ghost btn--small" id="boxClose" type="button">閉じる</button>');
     $("boxClose").addEventListener("click", function () { S.play("tap"); closeBox(); });
+    if ($("boxSet")) $("boxSet").addEventListener("click", function () { S.play("tap"); settingsBox(back); });
     if ($("boxTitle")) $("boxTitle").addEventListener("click", function () { S.play("tap"); save(); closeBox(); renderTitle(); });
     function back() { slotBox(mode); }
     $("modal").querySelectorAll("[data-del]").forEach(function (b) {
@@ -597,6 +647,9 @@
       var sign = aqName || "わたしの水族館";
       var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
       var ms = reduce ? 1200 : (o.ms || CUT_MS);
+      var fast = M.settings && M.settings.get("fast"); // 設定「演出をはやくする」
+      var ended = false;
+      function later(f, t) { setTimeout(function () { if (!ended) f(); }, t); }
       var el = document.createElement("div");
       var power = o.power || "small"; // big：しっかり揺れて振動 / mid：軽く / small：揺れも振動もなし
       el.className = "cutscene cut-" + o.kind + " pow-" + power + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
@@ -614,30 +667,39 @@
         (o.tag ? '<span class="cutscene__tag mood-' + o.mood + '">' + esc(o.tag) + "</span>" : "") +
         '<p class="cutscene__label">' + esc(o.label) + "</p>" +
         '<p class="cutscene__caption">' + esc(o.caption) + "</p>" +
-        '<div class="cutscene__bar"><span></span></div>';
+        '<div class="cutscene__bar"><span></span></div><p class="cutscene__skip">タップでスキップ</p>';
       // 新しく付いた外観パーツだけを「ポン」と出す
       (o.newFlags || []).forEach(function (f) {
         el.querySelectorAll(".cutscene__after .mk-x-" + f).forEach(function (n) { n.classList.add("cut-new"); });
       });
-      // 演出中はタップを受け付けない（下の画面にも届かない）
+      // タップは下の画面に届かせない（少したってからのタップで、演出を飛ばせる）
       ["click", "touchstart", "touchend", "pointerdown"].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); if (t === "click") e.preventDefault(); }, { passive: t !== "click" }); });
       document.body.appendChild(el);
       if (o.sound) S.play(o.sound);
       // 場面ごとの音（工事の場面は工事の音がすでに鳴るので除く）
       var ks = "k-" + o.kind;
-      if (!/^(build|annex|grow|repair)$/.test(o.kind) && S.has && S.has(ks)) setTimeout(function () { S.play(ks); }, o.event ? 380 : 180);
+      if (!/^(build|annex|grow|repair)$/.test(o.kind) && S.has && S.has(ks)) later(function () { S.play(ks); }, o.event ? 380 : 180);
       if (/cut-big/.test(o.extraClass || "")) S.play("k-fireworks");
       var hitAt = o.kind === "build" ? 2600 : /cut-resize/.test(o.extraClass || "") ? 1550 : o.event ? 800 : 1350;
-      if (o.hitSound) setTimeout(function () { S.play(o.hitSound); }, Math.max(0, hitAt - 650));
+      if (o.hitSound) later(function () { S.play(o.hitSound); }, Math.max(0, hitAt - 650));
       // iPhoneの振動は、大きな変化のときだけ（「ドン」の瞬間に合わせる）
       if (power !== "small" && !reduce && M.native) {
         var hit = hitAt;
-        setTimeout(function () { M.native.haptic(power === "big" ? "impact-heavy" : "impact-light"); }, hit);
+        later(function () { M.native.haptic(power === "big" ? "impact-heavy" : "impact-light"); }, hit);
       }
-      setTimeout(function () {
+      function finishCut() {
+        if (ended) return;
+        ended = true;
         el.classList.add("is-leaving");
         setTimeout(function () { el.remove(); resolve(); }, 280);
-      }, ms);
+      }
+      // 「はやくする」のときは、変化がひととおり見えたところで終える
+      setTimeout(finishCut, fast ? Math.min(ms, hitAt + 350) : ms);
+      setTimeout(function () {
+        if (ended) return;
+        el.classList.add("can-skip");
+        el.addEventListener("click", finishCut);
+      }, 700);
     });
   }
 
@@ -954,7 +1016,7 @@
         : "スタートの" + esc(M.story.money(start)) + "から <b>" + esc(M.story.money(diff)) + "</b>。" + (profit > 0 ? "営業では利益が出たものの、投資や返済がそれを上回りました。" : "営業で利益を出せず、資金が減ってしまいました。")) + "</p>";
   }
 
-  function renderResult(result, story, shared) {
+  function renderResult(result, story, shared, album) {
     current = { result: result, story: story };
     // 結果の曲：総合評価がC以上ならうれしい曲、D以下はしっとりした曲
     bgm(["S", "A", "B", "C"].indexOf(M.story.overall(result).rank) >= 0 ? "happy" : "sad");
@@ -997,7 +1059,7 @@
 
     show(
       '<section class="result-top">' +
-        (shared ? '<p class="small-note" style="margin:0 0 10px">友達がつくった水族館の結果です</p>' : "") +
+        (shared ? '<p class="small-note" style="margin:0 0 10px">' + (album ? "エンディング図鑑の思い出" : "友達がつくった水族館の結果です") + "</p>" : "") +
         '<div class="result-art">' + art + "</div>" +
         damageMeter(result.aquarium.damage) +
         '<p class="result-name">' + (shared ? "友達の水族館" : "あなたの水族館") + "<b>" + esc(story.aquariumName) + "</b></p>" +
@@ -1031,7 +1093,7 @@
       '<p class="brand-foot"><b>MARINK</b><br>海の生き物を、もっと面白く。</p>' +
       '<div class="result-actions">' +
         (shared
-          ? '<button class="btn btn--primary" id="retryBtn" type="button">自分も水族館をつくる！</button>'
+          ? '<button class="btn btn--primary" id="retryBtn" type="button">' + (album ? "タイトルに戻る" : "自分も水族館をつくる！") + "</button>"
           : '<div class="btn-row"><button class="btn btn--sea btn--small" id="saveBtn" type="button">結果画像を保存</button><button class="btn btn--primary btn--small" id="shareBtn" type="button">友達に共有</button></div>') +
       "</div>"
     );

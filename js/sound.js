@@ -13,6 +13,9 @@
   var enabled = true;
   try { enabled = localStorage.getItem("marink-sound") !== "off"; } catch (e) {}
 
+  function sfxVol() { return M.settings ? M.settings.get("sfx") / 100 : 1; }
+  if (M.settings) M.settings.onChange(function (k) { if (k === "sfx" && out) out.gain.value = SFX_GAIN * sfxVol(); });
+
   function ac() {
     if (!ctx) {
       var C = g.AudioContext || g.webkitAudioContext;
@@ -20,7 +23,7 @@
       ctx = new C();
       var comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -10; comp.ratio.value = 4;
-      out = ctx.createGain(); out.gain.value = SFX_GAIN;
+      out = ctx.createGain(); out.gain.value = SFX_GAIN * sfxVol();
       out.connect(comp); comp.connect(ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();

@@ -832,3 +832,26 @@ body.is-opening { overflow: hidden; }
 .save-slot__info span { display: block; font-size: 12.5px; color: var(--ink-soft); }
 .save-del { flex: none; min-width: 52px; border: 0; border-radius: 16px; background: #fbe9e6; color: #a8473c; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .save-box .btn { margin-top: 8px; }
+
+.modal__box.save-box .btn-row { margin-top: 8px; }
+.modal__box.save-box .btn-row .btn { margin-top: 0; }
+
+/* ───── 設定 ───── */
+.set-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.set-list li { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 4px 2px; border-bottom: 1px solid var(--line); }
+.set-list label { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; }
+.set-list label small { display: block; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+.set-list input[type="range"] { flex: 1.2; min-width: 0; height: 44px; accent-color: var(--teal-deep); }
+.set-list input[type="checkbox"] { width: 28px; height: 28px; accent-color: var(--teal-deep); }
+.set-list output { width: 2.4em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ───── 演出のスキップ ───── */
+.cutscene__skip { position: absolute; left: 0; right: 0; bottom: calc(22px + var(--safe-b)); margin: 0; text-align: center; font-size: 13px; font-weight: 700; color: #fff; opacity: 0; transition: opacity .3s; text-shadow: 0 1px 6px rgba(0, 30, 60, .6); }
+.cutscene.can-skip { cursor: pointer; }
+.cutscene.can-skip .cutscene__skip { opacity: .9; }
+
+/* ───── 図鑑：見返せる思い出 ───── */
+.zukan__grid li.has-memo { padding: 0; }
+.zukan__grid li.has-memo::before { content: none; }
+.zukan__grid li.has-memo button { width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 12px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.zukan__grid li.has-memo button::before { content: "▶ "; }

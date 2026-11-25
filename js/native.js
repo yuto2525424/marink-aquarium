@@ -28,6 +28,7 @@
     fanfare: ["notification", "SUCCESS"],
   };
   function haptic(kind) {
+    if (M.settings && !M.settings.get("haptic")) return;
     var h = plugin("Haptics"), m = HAPTIC[kind];
     if (!h || !m) return;
     try { quiet(m[0] === "impact" ? h.impact({ style: m[1] }) : h.notification({ type: m[1] })); } catch (e) {}

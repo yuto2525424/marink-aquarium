@@ -94,8 +94,11 @@
   });
 
   var ctx = null, master = null, current = null, wanted = null, enabled = true;
-  var timer = null, nextTime = 0, step = 0, bar = 0, wavesNode = null, echoIn = null, airNode = null, duckNode = null;
+  var timer = null, nextTime = 0, step = 0, bar = 0, wavesNode = null, echoIn = null, airNode = null, duckNode = null, volNode = null;
   try { enabled = localStorage.getItem("marink-sound") !== "off"; } catch (e) {}
+
+  function bgmVol() { return M.settings ? M.settings.get("bgm") / 100 : 1; }
+  if (M.settings) M.settings.onChange(function (k) { if (k === "bgm" && volNode) volNode.gain.value = bgmVol(); });
 
   function midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
 
@@ -107,7 +110,9 @@
       master.gain.value = 0;
       // 効果音が鳴るときだけBGMを小さくするための音量つまみ
       duckNode = ctx.createGain(); duckNode.gain.value = 1;
-      master.connect(duckNode); duckNode.connect(ctx.destination);
+      // 設定画面のBGM音量
+      volNode = ctx.createGain(); volNode.gain.value = bgmVol();
+      master.connect(duckNode); duckNode.connect(volNode); volNode.connect(ctx.destination);
       // こだま（ディレイ）：音が水の中で遠くへ響いていくように
       try {
         echoIn = ctx.createGain(); echoIn.gain.value = 0;
