@@ -373,7 +373,8 @@
     openBox('<h2 class="save-box__title">設定</h2><ul class="set-list">' +
       '<li><label for="set-sound">音を鳴らす</label><input id="set-sound" type="checkbox"' + (S.isOn() ? " checked" : "") + "></li>" +
       range("bgm", "BGMの音量") + range("sfx", "効果音の音量") +
-      check("fast", "演出をはやくする", "演出は、タップでも飛ばせます") +
+      check("fast", "演出をはやくする") +
+      check("skip", "演出をタップで飛ばす") +
       (M.native && M.native.isNative ? check("haptic", "振動") : "") +
       '</ul><button class="btn btn--sea btn--small" id="boxClose" type="button">閉じる</button>');
     $("boxClose").addEventListener("click", function () { S.play("tap"); done(); });
@@ -672,7 +673,7 @@
       (o.newFlags || []).forEach(function (f) {
         el.querySelectorAll(".cutscene__after .mk-x-" + f).forEach(function (n) { n.classList.add("cut-new"); });
       });
-      // タップは下の画面に届かせない（少したってからのタップで、演出を飛ばせる）
+      // タップは下の画面に届かせない（設定でオンにしたときだけ、少したってからのタップで飛ばせる）
       ["click", "touchstart", "touchend", "pointerdown"].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); if (t === "click") e.preventDefault(); }, { passive: t !== "click" }); });
       document.body.appendChild(el);
       if (o.sound) S.play(o.sound);
@@ -696,7 +697,7 @@
       // 「はやくする」のときは、変化がひととおり見えたところで終える
       setTimeout(finishCut, fast ? Math.min(ms, hitAt + 350) : ms);
       setTimeout(function () {
-        if (ended) return;
+        if (ended || !M.settings || !M.settings.get("skip")) return;
         el.classList.add("can-skip");
         el.addEventListener("click", finishCut);
       }, 700);
