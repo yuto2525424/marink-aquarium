@@ -4,7 +4,7 @@
  */
 (function (g) {
   var M = (g.MARINK = g.MARINK || {});
-  var ctx = null, out = null, noiseBuf = null;
+  var ctx = null, out = null, bus = null, noiseBuf = null;
   // 効果音は大きめに（BGMより前に出るように）。音割れしないようコンプレッサーを通す
   var SFX_GAIN = 2.2;
   // 効果音が鳴っている間、BGMを小さくする時間（秒）
@@ -16,15 +16,27 @@
   function sfxVol() { return M.settings ? M.settings.get("sfx") / 100 : 1; }
   if (M.settings) M.settings.onChange(function (k) { if (k === "sfx" && out) out.gain.value = SFX_GAIN * sfxVol(); });
 
+  function lite() { return !!(M.settings && M.settings.get("lite")); }
+  /* 鳴り終わった音の部品を外す（古い iPhone では、外さないとたまって重くなる） */
+  function tidy(src, nodes) { src.onended = function () { nodes.concat(src).forEach(function (n) { try { n.disconnect(); } catch (e) {} }); }; }
+
   function ac() {
     if (!ctx) {
       var C = g.AudioContext || g.webkitAudioContext;
       if (!C) return null;
-      ctx = new C();
+      // 音をまとめて作る設定にして、処理が追いつかないときの途切れ（ガビガビ）を防ぐ
+      try { ctx = new C({ latencyHint: lite() ? "playback" : "balanced" }); } catch (e) { ctx = new C(); }
+      // 最後の出口：小さなスピーカーがびりつく重低音をけずり、BGMと効果音を足しても音割れしないようにおさえる
+      bus = ctx.createGain();
+      var hp = ctx.createBiquadFilter(), lim = ctx.createDynamicsCompressor(), trim = ctx.createGain();
+      hp.type = "highpass"; hp.frequency.value = lite() ? 110 : 60;
+      lim.threshold.value = -8; lim.knee.value = 4; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      trim.gain.value = 0.6; // コンプレッサーが自動で持ち上げる分を戻す
+      bus.connect(hp); hp.connect(lim); lim.connect(trim); trim.connect(ctx.destination);
       var comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -10; comp.ratio.value = 4;
       out = ctx.createGain(); out.gain.value = SFX_GAIN * sfxVol();
-      out.connect(comp); comp.connect(ctx.destination);
+      out.connect(comp); comp.connect(bus);
     }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
@@ -43,6 +55,7 @@
     gn.gain.exponentialRampToValueAtTime(vol || 0.12, t + 0.02);
     gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(gn).connect(out);
+    tidy(o, [gn]);
     o.start(t);
     o.stop(t + dur + 0.05);
   }
@@ -56,7 +69,7 @@
     o.type = "sine";
     o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.16);
     gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + 0.008); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    o.connect(gn).connect(out); o.start(t); o.stop(t + 0.25);
+    o.connect(gn).connect(out); tidy(o, [gn]); o.start(t); o.stop(t + 0.25);
     if (!noiseBuf) {
       noiseBuf = c.createBuffer(1, c.sampleRate * 2.5, c.sampleRate);
       var d = noiseBuf.getChannelData(0);
@@ -65,7 +78,7 @@
     var s = c.createBufferSource(), f = c.createBiquadFilter(), g2 = c.createGain();
     s.buffer = noiseBuf; f.type = "lowpass"; f.frequency.value = 520;
     g2.gain.setValueAtTime(vol * 0.9, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-    s.connect(f).connect(g2).connect(out); s.start(t); s.stop(t + 0.16);
+    s.connect(f).connect(g2).connect(out); tidy(s, [f, g2]); s.start(t); s.stop(t + 0.16);
   }
   // ドリルの「ギュイーン」（低いギザギザの音を震わせる）
   function drill(start, len) {
@@ -78,7 +91,7 @@
     lfo.frequency.value = 32; lg.gain.value = 0.02;
     gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(0.035, t + 0.05); gn.gain.setValueAtTime(0.035, t + len - 0.08); gn.gain.exponentialRampToValueAtTime(0.0001, t + len);
     lfo.connect(lg).connect(gn.gain);
-    o.connect(f).connect(gn).connect(out); o.start(t); o.stop(t + len + 0.05); lfo.start(t); lfo.stop(t + len + 0.05);
+    o.connect(f).connect(gn).connect(out); tidy(o, [f, gn]); tidy(lfo, [lg]); o.start(t); o.stop(t + len + 0.05); lfo.start(t); lfo.stop(t + len + 0.05);
   }
   // 鉄骨の「カーン」
   function clang(start) {
@@ -88,15 +101,16 @@
   function nz(start, dur, vol, ftype, freq, q, attack) {
     var c = ac();
     if (!c) return;
-    if (!noiseBuf) { thud(-1, 0.0001); }
+    if (!noiseBuf) { thud(0, 0.0002); }
     var t = c.currentTime + start;
     var s = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain();
     s.buffer = noiseBuf; f.type = ftype || "lowpass"; f.frequency.value = freq || 1000; if (q) f.Q.value = q;
     gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.005)); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f).connect(gn).connect(out); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+    s.connect(f).connect(gn).connect(out); tidy(s, [f, gn]); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
   }
   // 拍手（人が集まったとき）
   function claps(start, len, n, vol) {
+    if (lite()) { n = Math.ceil(n * 0.4); vol *= 1.3; }
     for (var i = 0; i < n; i++) nz(start + (i * 0.618 % 1) * len, 0.06, vol * (0.6 + (i * 0.37 % 1) * 0.6), "bandpass", 1200 + (i * 0.71 % 1) * 1400, 1.2);
   }
   // 足音
@@ -160,6 +174,9 @@
     isOn: function () { return enabled; },
     has: function (name) { return !!SFX[name]; },
     ctx: ac,
+    bus: function () { ac(); return bus; },
+    lite: lite,
+    tidy: tidy,
     toggle: function () {
       enabled = !enabled;
       try { localStorage.setItem("marink-sound", enabled ? "on" : "off"); } catch (e) {}

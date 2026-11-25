@@ -4,7 +4,15 @@
 (function (g) {
   var M = (g.MARINK = g.MARINK || {});
   var KEY = "marink-settings-v1";
-  var DEF = { bgm: 100, sfx: 100, fast: false, skip: false, haptic: true };
+  /* 古い機種かどうかの目安（iPhone 8・X などの iOS 16 以前、ホームボタンのある iPhone、性能の低い端末） */
+  function oldDevice() {
+    var n = g.navigator || {}, ua = n.userAgent || "";
+    var m = /(?:iPhone|iPad|iPod).*? OS (\d+)_/.exec(ua);
+    if (m && +m[1] <= 16) return true;
+    if (/iPhone/.test(ua) && g.screen && Math.max(g.screen.width, g.screen.height) <= 736) return true;
+    return /Android/.test(ua) && ((n.hardwareConcurrency || 8) <= 4 || (n.deviceMemory || 8) <= 2);
+  }
+  var DEF = { bgm: 100, sfx: 100, fast: false, skip: false, haptic: true, lite: oldDevice() };
   var cur = Object.assign({}, DEF), listeners = [];
   function vol(v) { v = Number(v); return isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 100; }
   try {
@@ -14,6 +22,7 @@
     cur.fast = raw.fast === true;
     cur.skip = raw.skip === true; // 初期はオフ
     cur.haptic = raw.haptic !== false;
+    if (typeof raw.lite === "boolean") cur.lite = raw.lite; // 音を軽くする（初期値は機種から自動で決める）
   } catch (e) {}
   M.settings = {
     get: function (k) { return cur[k]; },

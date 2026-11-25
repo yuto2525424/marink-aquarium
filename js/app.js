@@ -373,6 +373,7 @@
     openBox('<h2 class="save-box__title">設定</h2><ul class="set-list">' +
       '<li><label for="set-sound">音を鳴らす</label><input id="set-sound" type="checkbox"' + (S.isOn() ? " checked" : "") + "></li>" +
       range("bgm", "BGMの音量") + range("sfx", "効果音の音量") +
+      check("lite", "音を軽くする", "音がガビガビ・ブツブツするときにオン") +
       check("fast", "演出をはやくする") +
       check("skip", "演出をタップで飛ばす") +
       (M.native && M.native.isNative ? check("haptic", "振動") : "") +

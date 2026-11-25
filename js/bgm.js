@@ -112,7 +112,7 @@
       duckNode = ctx.createGain(); duckNode.gain.value = 1;
       // 設定画面のBGM音量
       volNode = ctx.createGain(); volNode.gain.value = bgmVol();
-      master.connect(duckNode); duckNode.connect(volNode); volNode.connect(ctx.destination);
+      master.connect(duckNode); duckNode.connect(volNode); volNode.connect(M.sound.bus());
       // こだま（ディレイ）：音が水の中で遠くへ響いていくように
       try {
         echoIn = ctx.createGain(); echoIn.gain.value = 0;
@@ -125,30 +125,33 @@
   }
 
   /* ── 楽器 ── */
+  function lite() { return M.sound.lite(); }
+  function tidy(s, n) { M.sound.tidy(s, n); }
   function note(inst, freq, t, len, vol) {
     var c = ctx, o = c.createOscillator(), gn = c.createGain(), end;
     var shape = { glass: [0.02, 2.8], box: [0.004, 1.4], bell: [0.004, 1.8], marimba: [0.003, 0.35], pluck: [0.003, 0.22], piano: [0.006, 1.6], bass: [0.01, 0.5] }[inst] || [0.01, 0.6];
     o.type = inst === "marimba" || inst === "bass" || inst === "piano" ? "triangle" : inst === "pluck" ? "square" : "sine";
     o.frequency.setValueAtTime(freq, t);
-    end = t + Math.max(shape[1], len);
+    end = t + (lite() ? Math.min(1.3, Math.max(shape[1], len)) : Math.max(shape[1], len));
     gn.gain.setValueAtTime(0.0001, t);
     gn.gain.exponentialRampToValueAtTime(vol, t + shape[0]);
     gn.gain.exponentialRampToValueAtTime(0.0001, end);
     var out = gn;
     if (inst === "pluck") { var f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1400; gn.connect(f); out = f; }
     o.connect(gn); out.connect(master);
-    if (echoIn && inst !== "bass") out.connect(echoIn);
+    if (echoIn && inst !== "bass" && !lite()) out.connect(echoIn);
+    tidy(o, out === gn ? [gn] : [gn, out]);
     o.start(t); o.stop(end + 0.05);
     // ベルとオルゴールは倍音を足してキラッとさせる
-    if (inst === "bell" || inst === "box" || inst === "glass") {
+    if (!lite() && (inst === "bell" || inst === "box" || inst === "glass")) {
       var o2 = c.createOscillator(), g2 = c.createGain();
       o2.type = "sine"; o2.frequency.setValueAtTime(freq * (inst === "bell" ? 2.76 : inst === "glass" ? 3.01 : 2), t);
       g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.004); g2.gain.exponentialRampToValueAtTime(0.0001, t + shape[1] * 0.5);
-      o2.connect(g2).connect(master); if (echoIn) g2.connect(echoIn); o2.start(t); o2.stop(t + shape[1]);
+      o2.connect(g2).connect(master); if (echoIn) g2.connect(echoIn); tidy(o2, [g2]); o2.start(t); o2.stop(t + shape[1]);
     }
   }
   function pad(tr, root, chord, t, dur) {
-    chord.slice(0, tr.pad.voices || 3).forEach(function (iv, k) {
+    chord.slice(0, lite() ? Math.min(2, tr.pad.voices || 3) : tr.pad.voices || 3).forEach(function (iv, k) {
       var c = ctx, o = c.createOscillator(), gn = c.createGain();
       o.type = tr.pad.type;
       o.frequency.setValueAtTime(midi(root + iv + tr.pad.oct), t);
@@ -159,6 +162,7 @@
       var out = gn;
       if (tr.pad.cutoff) { var f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = tr.pad.cutoff; gn.connect(f); out = f; }
       o.connect(gn); out.connect(master);
+      tidy(o, out === gn ? [gn] : [gn, out]);
       o.start(t); o.stop(t + dur * 1.05);
     });
   }
@@ -175,7 +179,7 @@
     var s = noise(), f = ctx.createBiquadFilter(), gn = ctx.createGain();
     f.type = "highpass"; f.frequency.value = 7000;
     gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    s.connect(f).connect(gn).connect(master); s.start(t); s.stop(t + 0.06);
+    s.connect(f).connect(gn).connect(master); tidy(s, [f, gn]); s.start(t); s.stop(t + 0.06);
   }
   // 波の音：ノイズを低くこもらせて、ゆっくり寄せては返す
   function startWaves() {
@@ -186,6 +190,7 @@
     lfo.connect(lg).connect(gn.gain);
     s.connect(f).connect(gn).connect(master);
     s.start(); lfo.start();
+    tidy(s, [f, gn]); tidy(lfo, [lg]);
     wavesNode = { s: s, lfo: lfo, gn: gn };
   }
   // ふしぎな空気：高いところでかすかに揺れる、きらめきの音
@@ -197,6 +202,7 @@
     lfo.connect(lg).connect(gn.gain);
     s.connect(f).connect(gn).connect(master);
     s.start(); lfo.start();
+    tidy(s, [f, gn]); tidy(lfo, [lg]);
     airNode = { s: s, lfo: lfo, gn: gn };
   }
   function stopAir() {
@@ -214,7 +220,9 @@
   function schedule() {
     if (!current) return;
     var tr = TRACKS[current], sp = 60 / tr.bpm / 4;
-    while (nextTime < ctx.currentTime + 0.25) {
+    // 画面の処理で遅れたときは、たまった音を一気に鳴らさずに今の位置から続ける
+    if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
+    while (nextTime < ctx.currentTime + 0.55) {
       var ch = tr.chords[bar % tr.chords.length], root = ch[0], chord = ch[1];
       if (step === 0) pad(tr, root, chord, nextTime, sp * 16);
       if (tr.bass && tr.bass.steps.indexOf(step) >= 0) note("bass", midi(root - 24), nextTime, sp * 2, tr.bass.vol);
@@ -244,7 +252,7 @@
     master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
     master.gain.linearRampToValueAtTime(tr.master, ctx.currentTime + 1.2);
     if (tr.waves) startWaves(); else stopWaves();
-    if (tr.air) startAir(); else stopAir();
+    if (tr.air && !lite()) startAir(); else stopAir();
     if (echoIn) echoIn.gain.setTargetAtTime(tr.echo || 0, ctx.currentTime, 0.1);
     if (!timer) timer = setInterval(schedule, 60);
     schedule();
