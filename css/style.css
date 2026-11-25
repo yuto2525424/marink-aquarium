@@ -816,3 +816,19 @@ body.is-opening { overflow: hidden; }
 @keyframes floorDrop { 0% { opacity: 0; transform: translateY(-60px) scaleY(1.2); } 70% { opacity: 1; transform: translateY(3px) scaleY(.92); } 100% { opacity: 1; transform: none; } }
 
 .cutscene svg .mk-sign { transform-box: fill-box; transform-origin: 50% 100%; }
+
+/* ───── セーブ画面 ───── */
+.save-box { text-align: left; }
+.save-box__title { margin: 2px 0 12px; font-size: 20px; font-weight: 900; text-align: center; }
+.modal__box .save-box__msg { margin: 8px 4px 16px; font-size: 16px; font-weight: 700; color: var(--ink); }
+.save-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.save-list li { display: flex; gap: 6px; align-items: stretch; }
+.save-slot { flex: 1; min-width: 0; min-height: 62px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 16px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.save-slot:active:not(:disabled) { transform: scale(.98); }
+.save-slot:disabled { opacity: .55; cursor: default; }
+.save-slot i { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--teal-deep); color: #fff; font-style: normal; font-weight: 900; }
+.save-slot__info { min-width: 0; }
+.save-slot__info b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.save-slot__info span { display: block; font-size: 12.5px; color: var(--ink-soft); }
+.save-del { flex: none; min-width: 52px; border: 0; border-radius: 16px; background: #fbe9e6; color: #a8473c; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.save-box .btn { margin-top: 8px; }

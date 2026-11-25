@@ -68,5 +68,12 @@
     if (sp) setTimeout(function () { quiet(sp.hide({ fadeOutDuration: 300 })); }, 250);
   }
 
-  M.native = { isNative: isNative, haptic: haptic, shareImage: shareImage, shareText: shareText, ready: ready };
+  /* iPhone標準の「このアプリを評価」の小窓（表示するかどうか・回数はAppleが決める） */
+  function requestReview() {
+    var r = plugin("AppReview");
+    if (!r) return;
+    try { quiet(r.requestReview()); } catch (e) {}
+  }
+
+  M.native = { isNative: isNative, haptic: haptic, shareImage: shareImage, shareText: shareText, ready: ready, requestReview: requestReview };
 })(window);

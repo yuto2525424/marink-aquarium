@@ -12,4 +12,6 @@ window.MARINK_CONFIG = {
   aiTimeoutMs: 20000,
   // アプリ版で結果を共有するときに使う、Webサイト版のURL
   webUrl: "https://yuto2525424.github.io/marink-aquarium/",
+  // 匿名の遊んだ記録の送り先（GoatCounter のサイト名。〇〇.goatcounter.com の〇〇）。空なら送らない
+  statsCode: "",
 };

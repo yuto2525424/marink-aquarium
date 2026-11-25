@@ -40,6 +40,9 @@
       <div class="progress__label" id="progressLabel">第1問 / 全10問</div>
       <div class="progress__bar"><div class="progress__fill" id="progressFill"></div></div>
     </div>
+    <button class="icon-btn" id="gameSaveBtn" type="button" aria-label="セーブする">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    </button>
     <button class="icon-btn" id="soundBtn" type="button" aria-label="効果音のオン・オフ" aria-pressed="true">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="snd-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="snd-off" d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
@@ -74,6 +77,7 @@
   <script src="js/ai.js"></script>
   <script src="js/share.js"></script>
   <script src="js/native.js"></script>
+  <script src="js/stats.js"></script>
   <script src="js/app.js"></script>
   <script>
     // オフライン対応（対応しているブラウザだけ。失敗してもゲームはそのまま遊べる）

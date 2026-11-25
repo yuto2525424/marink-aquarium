@@ -18,11 +18,41 @@
   }
   var aqName = "";
   var NAME_STORE = "marink-name";
-  function save() {
-    try { sessionStorage.setItem(STORE, history.join("")); sessionStorage.setItem(NAME_STORE, aqName); } catch (e) {}
+  var ST = M.stats || { send: function () {} };
+  var PLAYS = "marink-plays";
+  /* 何回目のエンディングかを数え、1・3・8回目のときだけ「評価のお願い」を出す（アプリ版のみ） */
+  function countPlay() {
+    var n = 0;
+    try { n = (parseInt(localStorage.getItem(PLAYS), 10) || 0) + 1; localStorage.setItem(PLAYS, String(n)); } catch (e) {}
+    return n;
   }
-  function loadName() { try { return M.story.cleanName(sessionStorage.getItem(NAME_STORE) || ""); } catch (e) { return ""; } }
-  function load() { try { return E.parseHistory(sessionStorage.getItem(STORE) || "") || []; } catch (e) { return []; } }
+  /* 自動セーブ（アプリやブラウザを閉じても残る。この端末の中だけに保存） */
+  function save() {
+    try { localStorage.setItem(STORE, history.join("")); localStorage.setItem(NAME_STORE, aqName); } catch (e) {}
+  }
+  function loadName() { try { return M.story.cleanName(localStorage.getItem(NAME_STORE) || ""); } catch (e) { return ""; } }
+  function load() { try { return E.parseHistory(localStorage.getItem(STORE) || "") || []; } catch (e) { return []; } }
+  function clearAuto() { try { localStorage.removeItem(STORE); } catch (e) {} }
+
+  /* セーブ枠（3つ）。選択の記録と水族館の名前だけを保存し、読み込むときに同じ状態を計算し直す */
+  var SLOTS = "marink-slots-v1", SLOT_COUNT = 3;
+  function loadSlots() {
+    var raw = [];
+    try { raw = JSON.parse(localStorage.getItem(SLOTS)) || []; } catch (e) {}
+    var out = [];
+    for (var i = 0; i < SLOT_COUNT; i++) {
+      var d = Array.isArray(raw) ? raw[i] : null;
+      var h = d && typeof d.h === "string" ? E.parseHistory(d.h) : null;
+      out.push(h && h.length < 10 ? { h: h, name: M.story.cleanName(String(d.n || "")), at: Number(d.t) || 0, v: String(d.v || "") } : null);
+    }
+    return out;
+  }
+  function storeSlots(list) {
+    try {
+      localStorage.setItem(SLOTS, JSON.stringify(list.map(function (d) { return d && { h: d.h.join(""), n: d.name, t: d.at, v: d.v }; })));
+      return true;
+    } catch (e) { return false; }
+  }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   function show(html, cls) {
@@ -180,8 +210,8 @@
     bgm("title");
     var saved = load();
     var demo = { location: "tourist", main: "big", bigFish: "full", tanks: "big", staffStyle: "veteran", price: "mid", scale: 4, newWing: false, lab: false, conservation: false, alliance: false, mega: false, reservation: false, renewed: false, care: false, closed: false, reorg: false, crowd: 7, mood: "bright" };
-    var resume = saved.length > 0 && saved.length < 10
-      ? '<button class="btn btn--ghost btn--small" id="resumeBtn" type="button" style="margin-top:10px">続きから遊ぶ（第' + (saved.length + 1) + "問）</button>"
+    var resume = saved.length
+      ? '<button class="btn btn--primary" id="resumeBtn" type="button">続きから遊ぶ（' + (saved.length < 10 ? "第" + (saved.length + 1) + "問" : "結果を見る") + "）</button>"
       : "";
     show(
       '<section class="title-screen">' +
@@ -198,8 +228,9 @@
           "<p>さあ、あなたの水族館の物語を始めましょう。</p>" +
         "</div>" +
         '<ul class="chips"><li class="chip">約3〜5分</li><li class="chip">全10問・3択</li><li class="chip">無料・ログイン不要</li></ul>' +
-        '<button class="btn btn--primary" id="startBtn" type="button">水族館をつくる！</button>' +
         resume +
+        '<button class="btn ' + (resume ? 'btn--ghost" style="margin-top:10px"' : 'btn--primary"') + ' id="startBtn" type="button">' + (resume ? "はじめからつくる" : "水族館をつくる！") + "</button>" +
+        '<button class="btn btn--ghost btn--small" id="loadBtn" type="button" style="margin-top:10px">セーブデータ</button>' +
         guideHtml() +
         '<button class="btn btn--primary" id="startBtn2" type="button" style="margin-top:18px">さっそく水族館をつくる！</button>' +
         installHtml() +
@@ -210,18 +241,25 @@
     var starting = false;
     function start() {
       if (starting) return;
+      if (saved.length) {
+        S.play("tap");
+        confirmBox("前回の続きがあります。はじめから遊ぶと、続きのデータは新しいものに置きかわります。", "はじめから遊ぶ", function () { closeBox(); go(); }, closeBox);
+        return;
+      }
+      go();
+    }
+    function go() {
       starting = true;
       S.play("bubble");
       softTransition(function () { renderNameScreen(loadName()); });
     }
+    $("loadBtn").addEventListener("click", function () { if (starting) return; S.play("tap"); slotBox("load"); });
     $("startBtn").addEventListener("click", start);
     $("startBtn2").addEventListener("click", start);
     if ($("resumeBtn")) $("resumeBtn").addEventListener("click", function () {
+      if (starting) return;
       S.play("bubble");
-      history = saved;
-      aqName = loadName();
-      hudShown = null;
-      goRound();
+      startFrom(saved, loadName());
     });
   }
 
@@ -267,6 +305,7 @@
       history = [];
       hudShown = null;
       save();
+      ST.send("play");
       goRound();
     }
     $("nameOk").addEventListener("click", function () { var n = M.story.cleanName(input.value); if (n) begin(n); });
@@ -275,8 +314,99 @@
     update();
   }
 
+  /* ───── セーブ画面 ───── */
+  var boxFocus = null;
+  function openBox(html) {
+    var m = $("modal");
+    if (m.hidden) boxFocus = document.activeElement;
+    m.setAttribute("aria-label", "セーブデータ");
+    m.innerHTML = '<div class="modal__box save-box">' + html + "</div>";
+    m.hidden = false;
+    var f = m.querySelector("button:not([disabled])");
+    if (f) f.focus();
+  }
+  function closeBox() {
+    var m = $("modal");
+    m.hidden = true;
+    m.innerHTML = "";
+    m.setAttribute("aria-label", "結果画像");
+    if (boxFocus && boxFocus.isConnected) boxFocus.focus();
+  }
+  function confirmBox(msg, label, yes, no) {
+    openBox('<p class="save-box__msg">' + esc(msg) + '</p><button class="btn btn--ghost btn--small" id="boxNo" type="button">やめる</button><button class="btn btn--primary btn--small" id="boxYes" type="button">' + esc(label) + "</button>");
+    $("boxYes").addEventListener("click", function () { S.play("bubble"); yes(); });
+    $("boxNo").addEventListener("click", function () { S.play("tap"); no(); });
+  }
+  function slotDate(t) {
+    var d = new Date(t), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+  /* 問題やイベントの画面で操作を待っているときだけ、セーブ画面を開ける */
+  function canSave() {
+    return !busy && $("sheet").hidden && $("modal").hidden && !document.querySelector(".cutscene") && !!document.querySelector("#options, #toQuestion");
+  }
+  function startFrom(h, name) {
+    history = h.slice();
+    aqName = name;
+    hudShown = null;
+    save();
+    goRound();
+  }
+  function slotBox(mode) {
+    var slots = loadSlots();
+    openBox('<h2 class="save-box__title">' + (mode === "save" ? "セーブする" : "セーブデータ") + "</h2>" +
+      '<ul class="save-list">' + slots.map(function (d, i) {
+        var info = d
+          ? "<b>" + esc(d.name || "名前おまかせの水族館") + "</b><span>第" + (d.h.length + 1) + "問から" + (d.at ? "・" + slotDate(d.at) : "") + (d.v !== D.version ? "・前の版のデータ（内容が変わることがあります）" : "") + "</span>"
+          : "<b>空き</b><span>" + (mode === "save" ? "ここにセーブできます" : "データがありません") + "</span>";
+        return '<li><button class="save-slot" type="button" data-slot="' + i + '"' + (mode === "load" && !d ? " disabled" : "") + "><i>" + (i + 1) + '</i><span class="save-slot__info">' + info + "</span></button>" +
+          (d ? '<button class="save-del" type="button" data-del="' + i + '" aria-label="セーブ' + (i + 1) + 'を消す">消す</button>' : "") + "</li>";
+      }).join("") + "</ul>" +
+      '<p class="small-note">この端末の中だけに保存されます。途中でやめても、選ぶたびに自動でセーブされるので、次は続きから遊べます。</p>' +
+      (mode === "save" ? '<button class="btn btn--ghost btn--small" id="boxTitle" type="button">タイトルに戻る</button>' : "") +
+      '<button class="btn btn--ghost btn--small" id="boxClose" type="button">閉じる</button>');
+    $("boxClose").addEventListener("click", function () { S.play("tap"); closeBox(); });
+    if ($("boxTitle")) $("boxTitle").addEventListener("click", function () { S.play("tap"); save(); closeBox(); renderTitle(); });
+    function back() { slotBox(mode); }
+    $("modal").querySelectorAll("[data-del]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = +b.getAttribute("data-del");
+        S.play("tap");
+        confirmBox("セーブ" + (i + 1) + "を消しますか？ 元に戻せません。", "消す", function () {
+          var l = loadSlots();
+          l[i] = null;
+          toast(storeSlots(l) ? "セーブ" + (i + 1) + "を消しました" : "消せませんでした");
+          back();
+        }, back);
+      });
+    });
+    $("modal").querySelectorAll("[data-slot]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = +b.getAttribute("data-slot"), d = slots[i];
+        if (mode === "load") {
+          var start = function () { closeBox(); S.play("bubble"); startFrom(d.h, d.name); };
+          if (load().length) {
+            S.play("tap");
+            confirmBox("セーブ" + (i + 1) + "から始めます。「続きから遊ぶ」のデータは置きかわります。", "ここから遊ぶ", start, back);
+          } else start();
+          return;
+        }
+        var put = function () {
+          var l = loadSlots();
+          l[i] = { h: history.slice(), name: aqName, at: Date.now(), v: D.version };
+          var ok = storeSlots(l);
+          S.play(ok ? "good" : "bad");
+          toast(ok ? "セーブ" + (i + 1) + "に保存しました" : "この端末では保存できませんでした");
+          if (ok) closeBox(); else back();
+        };
+        if (d) { S.play("tap"); confirmBox("セーブ" + (i + 1) + "に上書きしますか？", "上書きする", put, back); } else put();
+      });
+    });
+  }
+
   /* ───── ラウンド進行 ───── */
   function goRound() {
+    if (tapCleanup) tapCleanup(); // 前の画面の「どこでもタップで進む」を残さない
     busy = false;
     if (history.length >= 10) return finish();
     var sim = E.simulate(history);
@@ -291,7 +421,8 @@
     if (next.events.some(function (e) { return e.mood === "crisis"; })) bgm("crisis");
     if (!next.__played) {
       next.__played = true;
-      playEventCuts(history.slice(), next.events).then(function () { renderEvents(next); });
+      busy = true; // 演出のあいだは、戻る・セーブを受け付けない
+      playEventCuts(history.slice(), next.events).then(function () { busy = false; renderEvents(next); });
       return;
     }
     var crisis = next.events.some(function (e) { return e.mood === "crisis"; });
@@ -362,6 +493,7 @@
     setTimeout(function () {
       history.push(id);
       save();
+      ST.send("q" + history.length + "/" + id);
       var sim = E.simulate(history);
       var step = sim.steps[sim.steps.length - 1];
       $("progressFill").style.width = (history.length / 10) * 100 + "%";
@@ -617,7 +749,7 @@
     function click(e) {
       if (!ready || moved) return;
       // 戻る・音のボタンやリンクなどは、そのボタン本来の動きを優先する
-      if (e.target.closest && e.target.closest("a, input, textarea, select, details, .topbar, button:not(.tap-go)")) return;
+      if (e.target.closest && e.target.closest("a, input, textarea, select, details, .topbar, .modal, button:not(.tap-go)")) return;
       cleanup();
       go();
     }
@@ -853,6 +985,14 @@
     var tone = "tone-" + result.ending.mood;
     var ov = M.story.overall(result);
     var zk = shared ? null : saveZukan(result);
+    if (!shared) {
+      clearAuto(); // 最後まで遊んだので、途中のデータは消す（セーブ枠は残る）
+      ST.send("finish");
+      ST.send("ending/" + result.endingId);
+      ST.send("rank/" + ov.rank);
+      var plays = countPlay();
+      if ([1, 3, 8].indexOf(plays) >= 0 && M.native && M.native.requestReview) setTimeout(M.native.requestReview, 4000);
+    }
     var total = Object.keys(D.endings).length;
 
     show(
@@ -907,7 +1047,6 @@
     $("retryBtn").addEventListener("click", function () {
       S.play("bubble");
       history = [];
-      save();
       if (location.search) window.history.replaceState(null, "", location.pathname);
       if (shared) renderTitle(); else renderNameScreen(aqName);
     });
@@ -999,10 +1138,13 @@
   /* ───── 起動 ───── */
   function init() {
     if (M.native) M.native.ready();
+    ST.send(/[?&#]r=/.test(location.href) ? "open-shared" : "open");
     decorate();
     var sb = $("soundBtn");
     sb.setAttribute("aria-pressed", S.isOn() ? "true" : "false");
     sb.addEventListener("click", function () { sb.setAttribute("aria-pressed", S.toggle() ? "true" : "false"); });
+    $("gameSaveBtn").addEventListener("click", function () { if (canSave()) { S.play("tap"); slotBox("save"); } });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden && document.querySelector(".save-box")) closeBox(); });
     $("backBtn").addEventListener("click", function () {
       if (busy || !history.length || !$("sheet").hidden) return;
       S.play("tap");
