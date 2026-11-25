@@ -55,7 +55,7 @@ if (/fonts\.googleapis|serviceWorker|manifest\.webmanifest/.test(html)) throw ne
 fs.writeFileSync(path.join(www, "index.html"), html);
 
 /* 外部サイトへの通信が残っていないか確認（共有用のリンクは除く） */
-const allowed = /https:\/\/(twitter\.com\/intent|social-plugins\.line\.me|yuto2525424\.github\.io|platform\.claude\.com)/;
+const allowed = /https:\/\/(twitter\.com\/intent|social-plugins\.line\.me|yuto2525424\.github\.io|[a-z0-9-]+\.goatcounter\.com|www\.goatcounter\.com|platform\.claude\.com)/;
 for (const f of fs.readdirSync(path.join(www, "js"))) {
   const s = fs.readFileSync(path.join(www, "js", f), "utf8");
   (s.match(/https?:\/\/[^\s"'`)]+/g) || []).forEach((u) => {
