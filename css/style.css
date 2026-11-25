@@ -855,3 +855,12 @@ body.is-opening { overflow: hidden; }
 .zukan__grid li.has-memo::before { content: none; }
 .zukan__grid li.has-memo button { width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 12px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .zukan__grid li.has-memo button::before { content: "▶ "; }
+
+/* ───── イベント：読み終えてタップするまで待つ ───── */
+.cut-wait .cutscene__bar { display: none; }
+.cutscene__text { margin: 0; max-width: 520px; padding: 10px 16px; border-radius: 16px; background: rgba(255, 253, 248, .96); color: var(--ink); font-size: 15px; line-height: 1.7; text-align: center; animation: fadeUp .4s ease .25s both; }
+.cut-wait.can-skip .cutscene__skip { opacity: 1; font-size: 16px; animation: waitBlink 1.8s ease-in-out infinite; }
+.cut-wait:focus { outline: none; }
+.cut-wait .cutscene__frame { width: min(100%, 520px, 54vh); }
+@keyframes waitBlink { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .cut-wait.can-skip .cutscene__skip { animation: none; } }

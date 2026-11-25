@@ -489,7 +489,7 @@
       '<p class="tap-hint">画面のどこをタップしても進めます</p>',
       crisis ? "mood-crisis-screen" : ""
     );
-    tapAnywhere([document.body], function () { S.play("tap"); renderQuestion(next.question); });
+    tapAnywhere([document.body], function () { S.play("tap"); renderQuestion(next.question); }, 1000); // 続けてタップしても読み飛ばさないように
   }
 
   /* 選択肢のお金の動き（目安） */
@@ -654,7 +654,7 @@
       function later(f, t) { setTimeout(function () { if (!ended) f(); }, t); }
       var el = document.createElement("div");
       var power = o.power || "small"; // big：しっかり揺れて振動 / mid：軽く / small：揺れも振動もなし
-      el.className = "cutscene cut-" + o.kind + " pow-" + power + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
+      el.className = "cutscene cut-" + o.kind + " pow-" + power + (o.event ? " cut-wait" : "") + (o.extraClass ? " " + o.extraClass : "") + (reduce ? " cut-reduce" : "");
       if (o.from) el.style.setProperty("--from", o.from);
       el.style.setProperty("--cut-ms", ms + "ms");
       el.setAttribute("role", "status");
@@ -668,8 +668,9 @@
         "</div>" +
         (o.tag ? '<span class="cutscene__tag mood-' + o.mood + '">' + esc(o.tag) + "</span>" : "") +
         '<p class="cutscene__label">' + esc(o.label) + "</p>" +
+        (o.text ? '<p class="cutscene__text">' + esc(o.text) + "</p>" : "") +
         '<p class="cutscene__caption">' + esc(o.caption) + "</p>" +
-        '<div class="cutscene__bar"><span></span></div><p class="cutscene__skip">タップでスキップ</p>';
+        '<div class="cutscene__bar"><span></span></div><p class="cutscene__skip">' + (o.event ? "タップで次へ" : "タップでスキップ") + "</p>";
       // 新しく付いた外観パーツだけを「ポン」と出す
       (o.newFlags || []).forEach(function (f) {
         el.querySelectorAll(".cutscene__after .mk-x-" + f).forEach(function (n) { n.classList.add("cut-new"); });
@@ -696,12 +697,18 @@
         setTimeout(function () { el.remove(); resolve(); }, 280);
       }
       // 「はやくする」のときは、変化がひととおり見えたところで終える
-      setTimeout(finishCut, fast ? Math.min(ms, hitAt + 350) : ms);
+      // イベントは自動では進めず、読み終えてタップするまで待つ
+      if (!o.event) setTimeout(finishCut, fast ? Math.min(ms, hitAt + 350) : ms);
       setTimeout(function () {
-        if (ended || !M.settings || !M.settings.get("skip")) return;
+        if (ended || (!o.event && !(M.settings && M.settings.get("skip")))) return;
         el.classList.add("can-skip");
         el.addEventListener("click", finishCut);
-      }, 700);
+        if (o.event) {
+          el.setAttribute("tabindex", "0");
+          el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); finishCut(); } });
+          el.focus({ preventScroll: true });
+        }
+      }, o.event ? 1500 : 700);
     });
   }
 
@@ -756,7 +763,7 @@
     var d = e.delta || {}, parts = [];
     if (d.fund) parts.push("資金 " + M.story.money(d.fund, true));
     ["pop", "welfare", "staff", "research", "trust"].forEach(function (k) { if (d[k]) parts.push(D.statLabels[k] + " " + (d[k] > 0 ? "+" : "") + d[k]); });
-    return parts.join("　") || String(e.text || "").split("。")[0];
+    return parts.join("　"); // 本文は別に表示する
   }
   function playEventCuts(history, events) {
     var cfg;
@@ -768,7 +775,7 @@
         var kind = e.id === "ev_income" ? ((e.delta.fund || 0) >= 0 ? "coins" : "rain") : EV_CUT[e.id] || (e.mood === "bad" ? "rain" : "sparkle");
         var fund = Math.abs((e.delta && e.delta.fund) || 0);
         var power = e.mood === "crisis" ? "big" : fund >= 40 ? "mid" : "small";
-        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2600, power: power, event: true,
+        return showCut({ before: cfg, after: cfg, kind: kind, label: e.title, text: e.text, caption: eventCaption(e), tag: tags[e.mood], mood: e.mood, ms: 2600, power: power, event: true,
           sound: e.mood === "crisis" ? "crisis" : e.mood === "bad" || kind === "rain" ? "bad" : "good" });
       });
     }, Promise.resolve());
@@ -804,10 +811,10 @@
    * ・一度進んだら二重に反応しない
    * ・スクロールしただけ（指を動かした）なら進まない */
   var tapCleanup = null;
-  function tapAnywhere(targets, go) {
+  function tapAnywhere(targets, go, delay) {
     if (tapCleanup) tapCleanup();
     var ready = false, sx = 0, sy = 0, moved = false;
-    var timer = setTimeout(function () { ready = true; }, 450);
+    var timer = setTimeout(function () { ready = true; }, delay || 450);
     function down(e) { var t = e.touches ? e.touches[0] : e; sx = t.clientX; sy = t.clientY; moved = false; }
     function move(e) { var t = e.touches ? e.touches[0] : e; if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) moved = true; }
     function click(e) {

@@ -4,7 +4,7 @@
  *   （更新したらすぐ反映されるように、ネット優先にしています）
  * ・Googleフォント：保存しておいた版を優先
  */
-var CACHE = "marink-v19";
+var CACHE = "marink-v20";
 var CORE = [
   "./", "index.html", "manifest.webmanifest", "css/style.css",
   "js/config.js", "js/data.js", "js/engine.js", "js/story.js", "js/visual.js", "js/settings.js", "js/sound.js", "js/bgm.js", "js/ai.js", "js/share.js", "js/native.js", "js/stats.js", "js/app.js", "privacy.html",
